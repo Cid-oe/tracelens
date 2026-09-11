@@ -1,5 +1,6 @@
 """Tests for the `tracelens init` scaffold templates (issues #49, #35)."""
 
+import argparse
 from pathlib import Path
 
 import yaml
@@ -7,6 +8,8 @@ import yaml
 from tracelens.cli.config import load_run_config
 from tracelens.cli.init import (
     CONFIG_TEMPLATE,
+    add_init_parser,
+    cmd_init,
     render_readme,
     render_workflow,
     tracelens_requirement,
@@ -140,3 +143,104 @@ class TestReadmeTemplate:
         assert "--baseline-check --baselines-file eval/baselines.json --fail-on-regression moderate" in text
         assert "Prove that it blocks" in text
         assert "0 = gate passed, 1 = blocked, 2 = misconfigured or unevaluable" in text
+
+
+class TestInitOverwriteProtection:
+    def test_parser_options(self):
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers(dest="command")
+        add_init_parser(subparsers)
+
+        args = parser.parse_args(["init", ".", "--force"])
+        assert args.force is True
+        assert args.overwrite_edited is False
+
+        args_ow = parser.parse_args(["init", ".", "--overwrite-edited"])
+        assert args_ow.force is False
+        assert args_ow.overwrite_edited is True
+
+        args_both = parser.parse_args(["init", ".", "--force", "--overwrite-edited"])
+        assert args_both.force is True
+        assert args_both.overwrite_edited is True
+
+    def test_refusal_when_files_exist_without_force(self, tmp_path: Path, capsys):
+        args_init = argparse.Namespace(path=str(tmp_path), force=False, overwrite_edited=False)
+        assert cmd_init(args_init) == 0
+
+        # Second run without --force or --overwrite-edited refuses with exit code 2
+        code = cmd_init(args_init)
+        assert code == 2
+        captured = capsys.readouterr()
+        assert "Error: refusing to overwrite existing files:" in captured.err
+        assert "Re-run with --force to overwrite generated files." in captured.err
+
+    def test_untouched_files_rewritten(self, tmp_path: Path, capsys):
+        args_init = argparse.Namespace(path=str(tmp_path), force=False, overwrite_edited=False)
+        assert cmd_init(args_init) == 0
+
+        # With --force, identical files are safely rewritten and no "kept" hints appear
+        args_force = argparse.Namespace(path=str(tmp_path), force=True, overwrite_edited=False)
+        assert cmd_init(args_force) == 0
+        captured = capsys.readouterr()
+        assert "kept" not in captured.out
+        assert f"Initialized TraceLens eval scaffold in {tmp_path}" in captured.out
+
+    def test_edited_files_kept_under_force(self, tmp_path: Path, capsys):
+        args_init = argparse.Namespace(path=str(tmp_path), force=False, overwrite_edited=False)
+        assert cmd_init(args_init) == 0
+
+        adapter_file = tmp_path / "eval/adapter.py"
+        adapter_file.write_text("# user edited adapter\n", encoding="utf-8")
+        config_file = tmp_path / "tracelens.yaml"
+        config_file.write_text(enable_gate_block(CONFIG_TEMPLATE), encoding="utf-8")
+
+        args_force = argparse.Namespace(path=str(tmp_path), force=True, overwrite_edited=False)
+        assert cmd_init(args_force) == 0
+
+        captured = capsys.readouterr()
+        adapter_hint = f"kept {adapter_file} (edited); pass --overwrite-edited to replace it"
+        config_hint = f"kept {config_file} (edited); pass --overwrite-edited to replace it"
+        assert adapter_hint in captured.out
+        assert config_hint in captured.out
+
+        # Edits are preserved
+        assert adapter_file.read_text(encoding="utf-8") == "# user edited adapter\n"
+        assert "baseline:" in config_file.read_text(encoding="utf-8")
+
+        # Untouched files are preserved/rewritten
+        assert (tmp_path / "eval/grader.py").is_file()
+
+        # No backup files created
+        assert not (tmp_path / "eval/adapter.py.bak").exists()
+        assert not (tmp_path / "tracelens.yaml.bak").exists()
+
+    def test_overwrite_edited_replaces_with_backup(self, tmp_path: Path, capsys):
+        args_init = argparse.Namespace(path=str(tmp_path), force=False, overwrite_edited=False)
+        assert cmd_init(args_init) == 0
+
+        adapter_file = tmp_path / "eval/adapter.py"
+        adapter_file.write_text("# custom adapter code\n", encoding="utf-8")
+        config_file = tmp_path / "tracelens.yaml"
+        config_file.write_text("# custom yaml content\n", encoding="utf-8")
+
+        args_overwrite = argparse.Namespace(path=str(tmp_path), force=False, overwrite_edited=True)
+        assert cmd_init(args_overwrite) == 0
+
+        captured = capsys.readouterr()
+        adapter_bak = tmp_path / "eval/adapter.py.bak"
+        config_bak = tmp_path / "tracelens.yaml.bak"
+
+        assert f"overwrote {adapter_file} (backed up to {adapter_bak})" in captured.out
+        assert f"overwrote {config_file} (backed up to {config_bak})" in captured.out
+
+        # Edited files replaced with templates
+        assert "class StarterAdapter" in adapter_file.read_text(encoding="utf-8")
+        assert CONFIG_TEMPLATE == config_file.read_text(encoding="utf-8")
+
+        # Backups contain the edited content
+        assert adapter_bak.read_text(encoding="utf-8") == "# custom adapter code\n"
+        assert config_bak.read_text(encoding="utf-8") == "# custom yaml content\n"
+
+        # Untouched files do not have backups
+        assert not (tmp_path / "eval/grader.py.bak").exists()
+        assert not (tmp_path / "eval/tasks.json.bak").exists()
