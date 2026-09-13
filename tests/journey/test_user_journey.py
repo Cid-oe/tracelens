@@ -13,9 +13,9 @@ The journey: an existing project -> ``tracelens init`` -> ``run --config``
 ``compare`` calls it a regression -> a targeted ``--task-id`` rerun ->
 an infra outage and a grader crash make the gate unevaluable and are told
 apart -> malformed input and a bad config are usage errors ->
-checkpoint/resume re-executes nothing -> the suite passes again and
+checkpoint/resume re-executing nothing -> the suite passes again and
 ``compare`` calls it equivalent -> ``report`` and ``sample`` read the
-artifacts.
+artifacts -> ``reconcile`` validates grader calibration on filled worksheets.
 
 This deliberately duplicates no unit test: the boundary it covers is the
 installed console script driving the whole documented workflow on disk.
@@ -260,5 +260,75 @@ def test_documented_user_journey(tmp_path: Path) -> None:
         "--output", "eval/results/review.json", cwd=project, expect=0,
     )
     worksheet = load(project / "eval/results/review.json")
-    assert isinstance(worksheet, dict | list)
+    assert isinstance(worksheet, list)
+    assert len(worksheet) >= 2
     tracelens("report", "--results", "eval/results/trials.json", cwd=project, expect=2)
+
+    # 15. The human-evaluation loop: fill worksheet and reconcile.
+    # Empty worksheet without human_score exits 2 (no usable rows).
+    tracelens(
+        "reconcile", "--annotations", "eval/results/review.json",
+        cwd=project, expect=2,
+    )
+
+    # Agreeing review worksheet: human agrees with grader with sufficient variance to compute Pearson r.
+    agreeing_worksheet = [
+        {
+            **worksheet[0],
+            "grader_score": 1.0,
+            "grader_passed": True,
+            "human_score": 1.0,
+            "human_passed": True,
+            "notes": "Agree pass",
+        },
+        {
+            **worksheet[1],
+            "grader_score": 0.0,
+            "grader_passed": False,
+            "human_score": 0.0,
+            "human_passed": False,
+            "notes": "Agree fail",
+        },
+    ]
+    (project / "eval/results/review-agree.json").write_text(json.dumps(agreeing_worksheet, indent=2))
+    reconcile_pass = tracelens(
+        "reconcile", "--annotations", "eval/results/review-agree.json",
+        "--threshold", "0.7", "--output", "eval/results/calibration-pass.json",
+        cwd=project, expect=0,
+    )
+    assert "Pearson r:" in reconcile_pass.stdout
+    assert "Calibrated:           YES" in reconcile_pass.stdout
+    calib_pass_data = load(project / "eval/results/calibration-pass.json")
+    assert calib_pass_data["is_calibrated"] is True
+    assert calib_pass_data["sample_count"] == len(agreeing_worksheet)
+
+    # Disagreeing review worksheet: human completely inverts grader scores.
+    disagreeing_worksheet = [
+        {
+            **worksheet[0],
+            "grader_score": 1.0,
+            "grader_passed": True,
+            "human_score": 0.0,
+            "human_passed": False,
+            "notes": "Disagree",
+        },
+        {
+            **worksheet[1],
+            "grader_score": 0.0,
+            "grader_passed": False,
+            "human_score": 1.0,
+            "human_passed": True,
+            "notes": "Disagree",
+        },
+    ]
+    (project / "eval/results/review-disagree.json").write_text(json.dumps(disagreeing_worksheet, indent=2))
+    reconcile_fail = tracelens(
+        "reconcile", "--annotations", "eval/results/review-disagree.json",
+        "--threshold", "0.7", "--output", "eval/results/calibration-fail.json",
+        cwd=project, expect=1,
+    )
+    assert "Pearson r:" in reconcile_fail.stdout
+    assert "Calibrated:           NO - DRIFT DETECTED" in reconcile_fail.stdout
+    calib_fail_data = load(project / "eval/results/calibration-fail.json")
+    assert calib_fail_data["is_calibrated"] is False
+    assert calib_fail_data["sample_count"] == len(disagreeing_worksheet)

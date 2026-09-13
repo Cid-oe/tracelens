@@ -82,9 +82,11 @@ snippet, the gate enabled in `tracelens.yaml`, an intentional regression that
 blocks, `inspect` explaining it, `compare` calling it a regression, a
 `--task-id` rerun, an infra outage and a grader crash made unevaluable and
 told apart, malformed input and a bad config as usage errors,
-checkpoint/resume re-executing nothing, the suite passing again, and
-`report` and `sample` reading the artifacts. Every step checks the exit code
-and the decision persisted in the files.
+checkpoint/resume re-executing nothing, the suite passing again,
+`report` and `sample` reading the artifacts, and `reconcile` validating grader
+calibration on filled review worksheets (including agreed, disagreed, and
+unfilled worksheets). Every step checks the exit code and the decision
+persisted in the files.
 
 `make verify` runs it against the editable install. CI (the `user journey
 (built wheel)` job) runs it against the console script of a freshly built
