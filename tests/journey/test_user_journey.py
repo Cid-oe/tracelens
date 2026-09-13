@@ -120,6 +120,9 @@ def test_documented_user_journey(tmp_path: Path) -> None:
 
     # 4. Enable the gate in tracelens.yaml; the trusted agent passes it.
     enable_gate(config)
+    init_force = tracelens("init", ".", "--force", cwd=project, expect=0)
+    assert "kept tracelens.yaml (edited); pass --overwrite-edited to replace it" in init_force.stdout
+    assert "baseline:" in config.read_text()
     run = tracelens("run", "--config", "tracelens.yaml", cwd=project, expect=0)
     assert "Baseline check: 2 checked, 0 skipped (no baseline), 0 blocking regression(s)" in run.stdout
     assert load(results)["gate"]["status"] == "passed"

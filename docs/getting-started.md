@@ -96,8 +96,9 @@ every key. `eval/README.md` walks through storing baselines, enabling the
 regression gate in `tracelens.yaml`, and proving that an intentional
 regression blocks.
 
-Run `tracelens init . --force` only when you want to overwrite the generated
-files.
+Run `tracelens init . --force` to rewrite untouched starter files while keeping
+files you have edited (pass `--overwrite-edited` to replace edited files too,
+saving a `.bak` backup).
 
 ---
 

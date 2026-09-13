@@ -300,8 +300,14 @@ def test_init_refuses_to_overwrite_without_force(
     assert _run_main(monkeypatch, "init", ".") == 2  # refusal is a usage error
     assert adapter.read_text() == "# user edit\n"
 
+    # --force rewrites untouched files but preserves edited files
     assert _run_main(monkeypatch, "init", ".", "--force") == 0
+    assert adapter.read_text() == "# user edit\n"
+
+    # --overwrite-edited replaces edited files and saves a .bak backup
+    assert _run_main(monkeypatch, "init", ".", "--overwrite-edited") == 0
     assert "class StarterAdapter" in adapter.read_text()
+    assert (project / "eval/adapter.py.bak").read_text() == "# user edit\n"
 
 
 # --- Gate integrity: the baseline check must fail loudly, never silently ---

@@ -235,6 +235,12 @@ TraceLens 0.5.0 makes evaluation results comparable and explainable. Every run r
 
 ### Fixed
 
+- **`tracelens init --force` preserves edited files.** `tracelens init` with
+  `--force` now compares each existing generated file to its template,
+  rewriting untouched files but keeping any files the user has edited (listing
+  them with a hint). The new `--overwrite-edited` flag is the only way to
+  replace an edited file, saving a `.bak` copy of the user's version before
+  overwriting it. (#86)
 - **`tracelens init` generates a CI workflow that evaluates agent changes
   and installs reproducibly.** The generated `.github/workflows/eval.yml`
   used to trigger only on `eval/**`, `pyproject.toml`, and `uv.lock`, so a
