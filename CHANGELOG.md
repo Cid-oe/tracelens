@@ -8,8 +8,24 @@ top-level `tracelens.*` imports as the stable surface; submodule paths may move.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-06
+
+TraceLens 0.5.0 makes evaluation results comparable and explainable. Every run records provenance (task content hashes, grader and adapter identity, runner settings) so two runs are checked for compatibility before they are compared; `tracelens compare` gives a verdict between two saved runs with a paired task bootstrap; `tracelens inspect` explains failed trials from a trials file; `tracelens run --config tracelens.yaml` replaces long flag lists; every command shares one exit-code contract; and the pass-rate, pass@k, and pass^k estimators were tightened so harness failures leave the denominator and unevaluable gates no longer pass. Releases are now prepared and published by the release pipeline.
+
 ### Added
 
+- **One-click release preparation.** The "Release prepare" workflow takes a
+  version, validates it against the tags and the changelog, moves the
+  `[Unreleased]` entries into a dated section (`scripts/prepare_release.py`,
+  which refuses to release nothing), and opens a `release: vX.Y.Z` pull
+  request with the rendered notes; merging it makes the "Release tag"
+  workflow tag the merge commit and run the release workflow with
+  `publish=true`. Nothing releases on an ordinary merge, and the manual
+  tag path still works. (#88)
+- **`tracelens report --format ci`.** Re-renders the one-line CI summary
+  `tracelens run` printed, gate line included, from a saved results file,
+  so a job summary or script can read it without parsing Markdown. `report`
+  never re-decides the gate: it exits 0. (#75)
 - **Releases create their GitHub Release automatically.** The release
   workflow now runs three jobs: build and verify (tag matches the built
   version; release notes rendered from the changelog's dated section by
@@ -139,11 +155,20 @@ top-level `tracelens.*` imports as the stable surface; submodule paths may move.
 
 ### Changed
 
+- **`examples/hello_world.py` takes `--reports-dir`.** The default is still
+  `examples/reports/` (the checked-in sample the README links to); the test
+  suite now writes to a temporary directory instead of rewriting the sample
+  on every run. (#74)
 - **PyYAML is a core dependency** (`pyyaml>=6.0`), used only through the
   safe loader for `--config`. Flag-only `tracelens run` invocations are
   unchanged, except that `--eval-set`, `--adapter`, and `--graders` are now
   required only when no config file provides them; a run missing any of
   them still exits 2, naming both the flag and the config key. (#35)
+- **The scaffold and the user guide show `provenance_version`.** The
+  adapter and grader examples in the user guide declare it with a note on
+  when to bump it, and `tracelens init` writes a commented
+  `# provenance_version = "starter-1"` line into `eval/adapter.py` and
+  `eval/grader.py`. (#76)
 - **One exit-code contract for every command.** 0 = success or gate passed;
   1 = a negative result (blocked gate, unmet `--require-baselines`,
   calibration below threshold); 2 = a usage, configuration, or input error,

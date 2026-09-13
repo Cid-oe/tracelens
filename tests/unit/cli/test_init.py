@@ -7,7 +7,9 @@ import yaml
 
 from tracelens.cli.config import load_run_config
 from tracelens.cli.init import (
+    ADAPTER_TEMPLATE,
     CONFIG_TEMPLATE,
+    GRADER_TEMPLATE,
     add_init_parser,
     cmd_init,
     render_readme,
@@ -143,6 +145,16 @@ class TestReadmeTemplate:
         assert "--baseline-check --baselines-file eval/baselines.json --fail-on-regression moderate" in text
         assert "Prove that it blocks" in text
         assert "0 = gate passed, 1 = blocked, 2 = misconfigured or unevaluable" in text
+
+
+class TestProvenanceVersionHint:
+    """Issue #76: the scaffold shows where a declared identity goes."""
+
+    def test_templates_carry_the_commented_declaration(self):
+        for template in (ADAPTER_TEMPLATE, GRADER_TEMPLATE):
+            assert '    # provenance_version = "starter-1"\n' in template
+            # Commented out on purpose: the scaffold declares no version until the user does.
+            assert "\n    provenance_version" not in template
 
 
 class TestInitOverwriteProtection:

@@ -55,6 +55,11 @@ async def starter_agent(input_data: dict[str, Any]) -> dict[str, Any]:
 class StarterAdapter(SimpleAdapter):
     """No-argument adapter loadable by ``tracelens run``."""
 
+    # Declared identity recorded in every run's provenance. Uncomment and bump
+    # it when the agent under test changes (attribution evidence, not proof
+    # that the code is identical).
+    # provenance_version = "starter-1"
+
     def __init__(self) -> None:
         super().__init__(starter_agent)
 '''
@@ -67,6 +72,11 @@ from tracelens import CodeGrader, Task, Transcript
 
 class StarterGrader(CodeGrader):
     """Passes when ``final_output["answer"]`` matches task metadata."""
+
+    # Declared identity recorded in every run's provenance. Uncomment and bump
+    # it when the rubric changes: a changed grader is a different measurement,
+    # so `tracelens compare` refuses to compare runs across it.
+    # provenance_version = "starter-1"
 
     def __init__(self) -> None:
         super().__init__("starter")
@@ -374,7 +384,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     files = {root / relative: content for relative, content in _starter_files().items()}
 
     conflicts = [path for path in files if path.exists()]
-    if conflicts and not (args.force or getattr(args, "overwrite_edited", False)):
+    if conflicts and not (args.force or args.overwrite_edited):
         print("Error: refusing to overwrite existing files:", file=sys.stderr)
         for path in conflicts:
             print(f"  {path}", file=sys.stderr)
@@ -394,8 +404,13 @@ def cmd_init(args: argparse.Namespace) -> int:
 
         if existing == content:
             path.write_text(content, encoding="utf-8")
-        elif getattr(args, "overwrite_edited", False):
+        elif args.overwrite_edited:
             backup = path.parent / f"{path.name}.bak"
+            if backup.exists():
+                counter = 1
+                while (path.parent / f"{path.name}.bak.{counter}").exists():
+                    counter += 1
+                backup = path.parent / f"{path.name}.bak.{counter}"
             if existing is not None:
                 backup.write_text(existing, encoding="utf-8")
             else:
