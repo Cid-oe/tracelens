@@ -399,8 +399,8 @@ class ReportGenerator:
             lines.append("|------|--------|-----------|------------|")
             for s in report.task_summaries:
                 lines.append(
-                    f"| {s.task_id} | {_format_trial_count(s)} | "
-                    f"{_format_task_pass_rate(s, report)} | {s.mean_score:.4f} |"
+                    f"| {_md_cell(s.task_id)} | {_md_cell(_format_trial_count(s))} | "
+                    f"{_md_cell(_format_task_pass_rate(s, report))} | {_md_cell(f'{s.mean_score:.4f}')} |"
                 )
             lines.append("")
 
@@ -769,7 +769,7 @@ def _gate_section_md(report: ReportData) -> list[str]:
                 "|------|--------|----------|---------|--------|----------|-------|"
             )
             for row in rows:
-                lines.append("| " + " | ".join(row) + " |")
+                lines.append("| " + " | ".join(_md_cell(cell) for cell in row) + " |")
         skipped = _gate_skipped_lines(gate)
         if skipped:
             lines.append("")
@@ -812,6 +812,21 @@ def _gate_section_html(report: ReportData) -> str:
         if skipped:
             body += f'<p class="na">Skipped tasks: {escape("; ".join(skipped))}</p>'
     return f"<section><h2>Baseline Gate{badge}</h2>{body}</section>"
+
+
+def _md_cell(text: Any) -> str:
+    """Escape text for inclusion in a Markdown table cell.
+
+    Escapes pipe characters (| -> \\|) so table column boundaries are preserved,
+    collapses newlines and consecutive whitespace into a single space, and
+    neutralizes leading '<' characters (&lt;) to prevent raw HTML interpretation.
+    """
+    s = str(text).replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+    s = " ".join(s.split())
+    s = s.replace("|", r"\|")
+    if s.startswith("<"):
+        s = "&lt;" + s[1:]
+    return s
 
 
 def _format_pass_rate(report: ReportData) -> str:

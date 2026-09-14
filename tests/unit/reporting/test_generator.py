@@ -243,6 +243,33 @@ class TestReportGenerator:
         assert "task<script>" not in html
         assert "task&lt;script&gt;" in html
 
+    def test_render_markdown_escapes_task_ids_and_preserves_columns(self):
+        """Markdown report escapes pipes, neutralizes leading HTML, and preserves column counts."""
+        batch = _make_batch({
+            "task|with|pipes": [(True, 1.0)],
+            "<script>alert(1)</script>": [(True, 1.0)],
+            "task\nwith\nnewlines": [(True, 1.0)],
+        })
+
+        gen = ReportGenerator()
+        report = gen.build_report(batch)
+        md = gen.render_markdown(report)
+
+        # Confirm escaping of pipe and neutralization of leading <
+        assert r"task\|with\|pipes" in md
+        assert r"&lt;script>alert(1)&lt;/script>" in md or r"&lt;script>alert(1)</script>" in md
+        assert "task with newlines" in md
+
+        # Verify column counts in the table: each row has 4 columns (5 pipes including outer)
+        table_lines = [line for line in md.splitlines() if line.startswith("|")]
+        assert len(table_lines) >= 5  # header, separator, 3 tasks
+        for line in table_lines:
+            # When splitting by unescaped pipe (or replacing \| with placeholder), count columns
+            normalized = line.replace(r"\|", "ESCAPED_PIPE")
+            cells = [c.strip() for c in normalized.split("|")]
+            # Leading and trailing empty strings from outer pipes: | col1 | col2 | col3 | col4 | -> 6 elements
+            assert len(cells) == 6, f"Invalid column count in row: {line}"
+
 
 class TestSvgHelpers:
     def test_pass_rate_color_green(self):
@@ -626,6 +653,39 @@ class TestGateReporting:
         assert restored.gate.tasks[0].regressions[0].severity.value == "severe"
         assert gen.render_markdown(restored) == gen.render_markdown(report)
         assert gen.render_ci_summary(restored) == gen.render_ci_summary(report)
+
+    def test_gate_markdown_table_escapes_hostile_task_ids(self, tmp_path):
+        from tracelens.baselines.manager import BaselineManager, TaskBaseline
+        from tracelens.reporting.gate import evaluate_gate
+
+        manager = BaselineManager(tmp_path / "baselines.json")
+        baseline = TaskBaseline(task_id="pipe|id")
+        baseline.add_metric("pass_rate", 1.0, std=0.05, sample_size=10)
+        manager.set_baseline(baseline)
+        manager.save()
+        batch = _make_batch({
+            "pipe|id": [(False, 0.0)] * 3,
+        })
+        gen = ReportGenerator()
+        report = gen.build_report(batch)
+        report.gate = evaluate_gate(
+            batch, manager, task_ids=[s.task_id for s in report.task_summaries]
+        )
+        md = gen.render_markdown(report)
+        assert r"| pipe\|id | pass_rate |" in md
+
+        # Verify column count in gate table rows
+        gate_section = md.split("## Baseline Gate", 1)[1].split("\n## ", 1)[0]
+        gate_table_lines = [
+            line for line in gate_section.splitlines()
+            if line.startswith("|")
+        ]
+        assert len(gate_table_lines) >= 3  # header, separator, 1 row
+        for line in gate_table_lines:
+            normalized = line.replace(r"\|", "ESCAPED_PIPE")
+            cells = [c.strip() for c in normalized.split("|")]
+            # 7 columns: | Task | Metric | Baseline | Current | Change | Severity | Notes | -> 9 elements
+            assert len(cells) == 9, f"Invalid column count in gate table row: {line}"
 
     def test_legacy_report_has_no_gate_and_invents_none(self):
         legacy = {"total_trials": 1, "total_tasks": 1, "task_summaries": []}
