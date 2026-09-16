@@ -30,29 +30,78 @@ DEFAULT_MAX_STEPS = 20
 DEFAULT_MAX_CHARS = 400
 
 
-class TaskDuplicateIdError(ValueError):
-    """Raised when an eval set contains duplicate task IDs."""
+class TaskContextError(ValueError):
+    """Base error for task context resolution and validation failures."""
 
-    def __init__(self, task_id: str) -> None:
-        super().__init__(
-            f"duplicate task ID {task_id!r} in eval set; each task ID must be unique"
-        )
-        self.task_id = task_id
-
-
-class TaskContentMismatchError(ValueError):
-    """Raised when a task in the eval set does not match the recorded hash."""
-
-    def __init__(self, task_id: str, *, recorded_hash: str, computed_hash: str) -> None:
-        super().__init__(
-            f"task {task_id!r} content does not match the task recorded in the trials "
-            f"(recorded hash {recorded_hash[:12]}, eval set hash {computed_hash[:12]}). "
-            "Supply the original eval set used for the run, or run without --eval-set "
-            "to inspect the recorded execution evidence alone."
-        )
-        self.task_id = task_id
+    def __init__(
+        self,
+        message: str,
+        *,
+        task_id: str | None = None,
+        task_ids: list[str] | None = None,
+        reason: str | None = None,
+        recorded_hash: str | None = None,
+        computed_hash: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.task_id = task_id or (task_ids[0] if task_ids else None)
+        self.task_ids = task_ids or ([task_id] if task_id else [])
+        self.reason = reason
         self.recorded_hash = recorded_hash
         self.computed_hash = computed_hash
+
+
+class TaskDuplicateIdError(TaskContextError):
+    """Raised when an eval set contains duplicate task IDs."""
+
+    def __init__(
+        self,
+        task_id: str | None = None,
+        *,
+        task_ids: list[str] | None = None,
+        message: str | None = None,
+    ) -> None:
+        ids = task_ids or ([task_id] if task_id else [])
+        if message is None:
+            if len(ids) == 1:
+                message = f"duplicate task ID {ids[0]!r} in eval set; each task ID must be unique"
+            else:
+                formatted_ids = ", ".join(repr(i) for i in sorted(set(ids)))
+                message = f"duplicate task IDs in eval set: {formatted_ids}; each task ID must be unique"
+        super().__init__(
+            message,
+            task_id=task_id,
+            task_ids=ids,
+            reason="duplicate_task_id",
+        )
+
+
+class TaskContentMismatchError(TaskContextError):
+    """Raised when a task in the eval set does not match the recorded hash."""
+
+    def __init__(
+        self,
+        task_id: str,
+        *,
+        recorded_hash: str,
+        computed_hash: str,
+        message: str | None = None,
+    ) -> None:
+        if message is None:
+            message = (
+                f"task {task_id!r} content does not match the task recorded in the trials "
+                f"(recorded hash {recorded_hash[:12]}, eval set hash {computed_hash[:12]}). "
+                "Supply the original eval set used for the run, or run without --eval-set "
+                "to inspect the recorded execution evidence alone."
+            )
+        super().__init__(
+            message,
+            task_id=task_id,
+            reason="content_mismatch",
+            recorded_hash=recorded_hash,
+            computed_hash=computed_hash,
+        )
+
 
 
 class TaskContextStatus(StrEnum):
@@ -380,6 +429,53 @@ def select_trials(
     return selected
 
 
+def validate_task_context(
+    tasks: Sequence[Task] | None,
+    shown: Sequence[Trial],
+    provenance_hashes: dict[str, str],
+) -> tuple[dict[str, Task], dict[str, TaskContextStatus], TaskContextStatus]:
+    """Validate task set for duplicates and hash mismatches, resolving context statuses.
+
+    Returns:
+        (by_id, per_task_status, report_context_status)
+    """
+    if tasks is None:
+        return {}, {}, TaskContextStatus.NONE
+
+    by_id: dict[str, Task] = {}
+    duplicates: list[str] = []
+    for task in tasks:
+        if task.task_id in by_id:
+            duplicates.append(task.task_id)
+        by_id[task.task_id] = task
+
+    if duplicates:
+        raise TaskDuplicateIdError(task_ids=duplicates)
+
+    has_provenance_hashes = bool(provenance_hashes)
+    attached_task_ids = {trial.task_id for trial in shown if trial.task_id in by_id}
+
+    per_task_status: dict[str, TaskContextStatus] = {}
+    report_context_status = TaskContextStatus.VERIFIED
+
+    for tid in attached_task_ids:
+        task_obj = by_id[tid]
+        if not has_provenance_hashes or tid not in provenance_hashes:
+            per_task_status[tid] = TaskContextStatus.UNVERIFIED
+            report_context_status = TaskContextStatus.UNVERIFIED
+            continue
+
+        recorded_hash = provenance_hashes[tid]
+        computed_hash = task_content_hash(task_obj)
+        if recorded_hash != computed_hash:
+            raise TaskContentMismatchError(
+                tid, recorded_hash=recorded_hash, computed_hash=computed_hash
+            )
+        per_task_status[tid] = TaskContextStatus.VERIFIED
+
+    return by_id, per_task_status, report_context_status
+
+
 def build_inspection(
     batch: TrialBatch,
     *,
@@ -408,49 +504,15 @@ def build_inspection(
     selected = select_trials(batch, kinds=kinds, task_ids=task_ids, grader_ids=grader_ids)
     shown = selected if limit is None else selected[:limit]
 
-    # Validate task set and resolve task context
-    by_id: dict[str, Task] = {}
-    if tasks is not None:
-        seen: set[str] = set()
-        for task in tasks:
-            if task.task_id in seen:
-                raise TaskDuplicateIdError(task.task_id)
-            seen.add(task.task_id)
-            by_id[task.task_id] = task
-
-    # Check task content hashes against provenance for tasks attached to displayed/inspected trials
     task_hashes = (
         batch.provenance.measurement.task_hashes
         if (batch.provenance is not None and batch.provenance.measurement is not None)
         else {}
     )
-    has_provenance_hashes = bool(task_hashes)
+    by_id, per_task_status, report_context_status = validate_task_context(
+        tasks, shown, task_hashes
+    )
 
-    attached_task_ids = {trial.task_id for trial in shown if trial.task_id in by_id}
-    per_task_status: dict[str, TaskContextStatus] = {}
-
-    for tid in attached_task_ids:
-        task_obj = by_id[tid]
-        if has_provenance_hashes:
-            if tid in task_hashes:
-                recorded_hash = task_hashes[tid]
-                computed_hash = task_content_hash(task_obj)
-                if recorded_hash != computed_hash:
-                    raise TaskContentMismatchError(
-                        tid, recorded_hash=recorded_hash, computed_hash=computed_hash
-                    )
-                per_task_status[tid] = TaskContextStatus.VERIFIED
-            else:
-                per_task_status[tid] = TaskContextStatus.UNVERIFIED
-        else:
-            per_task_status[tid] = TaskContextStatus.UNVERIFIED
-
-    report_context_status = TaskContextStatus.NONE
-    if tasks is not None:
-        if any(s == TaskContextStatus.UNVERIFIED for s in per_task_status.values()) or not has_provenance_hashes:
-            report_context_status = TaskContextStatus.UNVERIFIED
-        else:
-            report_context_status = TaskContextStatus.VERIFIED
 
     parts = []
     if kinds is None:
@@ -569,10 +631,13 @@ def _trial_html(number: int, trial: TrialView) -> str:
     color = _KIND_COLORS[trial.kind]
     rows = [_row("why", KIND_MEANING[trial.kind])]
     if trial.task_name:
-        task_name_val = trial.task_name
-        if trial.task_context_status == TaskContextStatus.UNVERIFIED:
-            task_name_val += " (unverified)"
-        rows.append(_row("task", task_name_val))
+        rows.append(_row(
+            "task",
+            f"{trial.task_name} (unverified)"
+            if trial.task_context_status == TaskContextStatus.UNVERIFIED
+            else trial.task_name,
+        ))
+
     if trial.task_input is not None:
         rows.append(_row("input", trial.task_input))
     if trial.error_message:

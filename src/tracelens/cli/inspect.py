@@ -30,8 +30,7 @@ from tracelens.reporting.inspect import (
     DEFAULT_MAX_STEPS,
     FAILURE_KINDS,
     KIND_FLAGS,
-    TaskContentMismatchError,
-    TaskDuplicateIdError,
+    TaskContextError,
     TrialKind,
     build_inspection,
     render_html,
@@ -179,8 +178,9 @@ def cmd_inspect(args: argparse.Namespace) -> int:
             full=args.full,
             limit=args.limit,
         )
-    except (TaskDuplicateIdError, TaskContentMismatchError) as exc:
+    except TaskContextError as exc:
         return usage_error(str(exc), exc=exc, debug=debug)
+
     print(render_text(report))
     if args.html:
         failed = _write(args.html, render_html(report), "inspection html", debug=debug)

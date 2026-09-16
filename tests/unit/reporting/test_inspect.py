@@ -22,6 +22,7 @@ from tracelens.reporting.inspect import (
     FAILURE_KINDS,
     InspectionReport,
     TaskContentMismatchError,
+    TaskContextError,
     TaskContextStatus,
     TaskDuplicateIdError,
     TrialKind,
@@ -285,19 +286,34 @@ class TestBuildAndRender:
         report2 = build_inspection(batch, source="trials.json", tasks=[t1, t2, t3_modified])
         assert report2.task_context_status == TaskContextStatus.VERIFIED
 
-        # Mismatched hash on attached task raises TaskContentMismatchError
+        # Mismatched hash on attached task raises TaskContentMismatchError (subclass of TaskContextError)
         t1_tampered = Task(task_id="b", name="task b", input_data={"q": "different question"}, expectation=TaskExpectation(expected_output="ans b"))
         with pytest.raises(TaskContentMismatchError) as exc_info:
             build_inspection(batch, source="trials.json", tasks=[t1_tampered, t2])
+        assert isinstance(exc_info.value, TaskContextError)
         assert exc_info.value.task_id == "b"
+        assert exc_info.value.reason == "content_mismatch"
+        assert exc_info.value.recorded_hash is not None
+        assert exc_info.value.computed_hash is not None
         assert "task 'b' content does not match" in str(exc_info.value)
 
-        # Duplicate task IDs in eval set raise TaskDuplicateIdError
+        # Duplicate task IDs in eval set raise TaskDuplicateIdError (subclass of TaskContextError)
         t_dup = Task(task_id="b", name="task b dup", input_data={"q": "question b dup"})
         with pytest.raises(TaskDuplicateIdError) as exc_info_dup:
             build_inspection(batch, source="trials.json", tasks=[t1, t_dup])
+        assert isinstance(exc_info_dup.value, TaskContextError)
         assert exc_info_dup.value.task_id == "b"
+        assert exc_info_dup.value.task_ids == ["b"]
+        assert exc_info_dup.value.reason == "duplicate_task_id"
         assert "duplicate task ID 'b'" in str(exc_info_dup.value)
+
+        # Multiple duplicate task IDs report all duplicates together
+        t_dup2 = Task(task_id="c", name="task c dup", input_data={"q": "question c dup"})
+        with pytest.raises(TaskDuplicateIdError) as exc_info_dups:
+            build_inspection(batch, source="trials.json", tasks=[t1, t2, t_dup, t_dup2])
+        assert set(exc_info_dups.value.task_ids) == {"b", "c"}
+        assert "'b'" in str(exc_info_dups.value) and "'c'" in str(exc_info_dups.value)
+
 
         # Legacy batch without provenance hashes marks context as UNVERIFIED
         legacy_batch = _batch(FAILED)
