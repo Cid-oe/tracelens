@@ -31,22 +31,22 @@ DEFAULT_MAX_CHARS = 400
 
 
 class TaskContextError(ValueError):
-    """Base error for task context resolution and validation failures."""
+    """Raised when task context resolution or validation fails."""
 
     def __init__(
         self,
         message: str,
         *,
+        reason: str | None = None,
         task_id: str | None = None,
         task_ids: list[str] | None = None,
-        reason: str | None = None,
         recorded_hash: str | None = None,
         computed_hash: str | None = None,
     ) -> None:
         super().__init__(message)
+        self.reason = reason
         self.task_id = task_id or (task_ids[0] if task_ids else None)
         self.task_ids = task_ids or ([task_id] if task_id else [])
-        self.reason = reason
         self.recorded_hash = recorded_hash
         self.computed_hash = computed_hash
 
@@ -56,23 +56,20 @@ class TaskDuplicateIdError(TaskContextError):
 
     def __init__(
         self,
-        task_id: str | None = None,
+        task_ids: list[str],
         *,
-        task_ids: list[str] | None = None,
         message: str | None = None,
     ) -> None:
-        ids = task_ids or ([task_id] if task_id else [])
         if message is None:
-            if len(ids) == 1:
-                message = f"duplicate task ID {ids[0]!r} in eval set; each task ID must be unique"
+            if len(task_ids) == 1:
+                message = f"duplicate task ID {task_ids[0]!r} in eval set; each task ID must be unique"
             else:
-                formatted_ids = ", ".join(repr(i) for i in sorted(set(ids)))
-                message = f"duplicate task IDs in eval set: {formatted_ids}; each task ID must be unique"
+                formatted = ", ".join(repr(i) for i in sorted(set(task_ids)))
+                message = f"duplicate task IDs in eval set: {formatted}; each task ID must be unique"
         super().__init__(
             message,
-            task_id=task_id,
-            task_ids=ids,
             reason="duplicate_task_id",
+            task_ids=task_ids,
         )
 
 
@@ -96,8 +93,8 @@ class TaskContentMismatchError(TaskContextError):
             )
         super().__init__(
             message,
-            task_id=task_id,
             reason="content_mismatch",
+            task_id=task_id,
             recorded_hash=recorded_hash,
             computed_hash=computed_hash,
         )
