@@ -430,39 +430,24 @@ def select_trials(
 
 
 def validate_task_context(
-    tasks: Sequence[Task] | None,
+    by_id: dict[str, Task],
     shown: Sequence[Trial],
     provenance_hashes: dict[str, str],
-) -> tuple[dict[str, Task], dict[str, TaskContextStatus], TaskContextStatus]:
-    """Validate task set for duplicates and hash mismatches, resolving context statuses.
+) -> dict[str, TaskContextStatus]:
+    """Validate task set for hash mismatches and resolve per-task context statuses.
 
     Returns:
-        (by_id, per_task_status, report_context_status)
+        Mapping from task_id to TaskContextStatus.
     """
-    if tasks is None:
-        return {}, {}, TaskContextStatus.NONE
-
-    by_id: dict[str, Task] = {}
-    duplicates: list[str] = []
-    for task in tasks:
-        if task.task_id in by_id:
-            duplicates.append(task.task_id)
-        by_id[task.task_id] = task
-
-    if duplicates:
-        raise TaskDuplicateIdError(task_ids=duplicates)
-
     has_provenance_hashes = bool(provenance_hashes)
     attached_task_ids = {trial.task_id for trial in shown if trial.task_id in by_id}
 
     per_task_status: dict[str, TaskContextStatus] = {}
-    report_context_status = TaskContextStatus.VERIFIED
 
     for tid in attached_task_ids:
         task_obj = by_id[tid]
         if not has_provenance_hashes or tid not in provenance_hashes:
             per_task_status[tid] = TaskContextStatus.UNVERIFIED
-            report_context_status = TaskContextStatus.UNVERIFIED
             continue
 
         recorded_hash = provenance_hashes[tid]
@@ -473,7 +458,7 @@ def validate_task_context(
             )
         per_task_status[tid] = TaskContextStatus.VERIFIED
 
-    return by_id, per_task_status, report_context_status
+    return per_task_status
 
 
 def build_inspection(
@@ -504,15 +489,33 @@ def build_inspection(
     selected = select_trials(batch, kinds=kinds, task_ids=task_ids, grader_ids=grader_ids)
     shown = selected if limit is None else selected[:limit]
 
+    by_id: dict[str, Task] = {}
+    if tasks is not None:
+        duplicates: list[str] = []
+        for task in tasks:
+            if task.task_id in by_id:
+                duplicates.append(task.task_id)
+            by_id[task.task_id] = task
+        if duplicates:
+            raise TaskDuplicateIdError(task_ids=duplicates)
+
     task_hashes = (
         batch.provenance.measurement.task_hashes
         if (batch.provenance is not None and batch.provenance.measurement is not None)
         else {}
     )
-    by_id, per_task_status, report_context_status = validate_task_context(
-        tasks, shown, task_hashes
+    per_task_status = (
+        validate_task_context(by_id, shown, task_hashes)
+        if tasks is not None
+        else {}
     )
-
+    if tasks is None:
+        report_context_status = TaskContextStatus.NONE
+    else:
+        has_unverified = TaskContextStatus.UNVERIFIED in per_task_status.values()
+        report_context_status = (
+            TaskContextStatus.UNVERIFIED if has_unverified else TaskContextStatus.VERIFIED
+        )
 
     parts = []
     if kinds is None:
