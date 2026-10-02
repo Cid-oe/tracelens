@@ -19,7 +19,6 @@ from tracelens.baselines.comparison import (
     RegressionSeverity,
     severity_at_least,
 )
-from tracelens.baselines.manager import BaselineManager
 from tracelens.core.provenance import RunProvenance
 from tracelens.core.trial import TrialBatch
 from tracelens.reporting.gate import GateResult, GateStatus, TaskGateOutcome
