@@ -201,10 +201,7 @@ class Transcript(BaseModel):
     @property
     def total_tokens(self) -> int:
         """Calculate total token usage across all steps."""
-        return sum(
-            (s.tokens_in or 0) + (s.tokens_out or 0)
-            for s in self.steps
-        )
+        return sum((s.tokens_in or 0) + (s.tokens_out or 0) for s in self.steps)
 
     @property
     def input_tokens(self) -> int:

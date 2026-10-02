@@ -17,8 +17,7 @@ from tracelens.execution.runner import EvaluationRunner, RunnerConfig
 
 def _eval_set(n_tasks: int = 1) -> EvalSet:
     tasks = [
-        Task(task_id=f"task-{i}", name=f"Task {i}", input_data={"n": i})
-        for i in range(n_tasks)
+        Task(task_id=f"task-{i}", name=f"Task {i}", input_data={"n": i}) for i in range(n_tasks)
     ]
     return EvalSet(name="s", tasks=tasks)
 
@@ -161,9 +160,7 @@ class TestInfraRetry:
             sleeps.append(delay)
             await real_sleep(0)
 
-        monkeypatch.setattr(
-            "tracelens.execution.runner.asyncio.sleep", recording_sleep
-        )
+        monkeypatch.setattr("tracelens.execution.runner.asyncio.sleep", recording_sleep)
 
         adapter = _FlakyInfraAdapter(fail_times=100)
         config = RunnerConfig(max_infra_retries=2, infra_retry_backoff_seconds=0.1)

@@ -170,6 +170,9 @@ class MeasurementSetup(BaseModel):
     task_hashes: dict[str, str] = Field(default_factory=dict)
     graders: list[ComponentIdentity] = Field(default_factory=list)
     runner: RunnerSettings
+    is_subset: bool = False
+    selected_task_ids: list[str] | None = None
+    total_eval_set_tasks: int | None = None
 
 
 class CandidateSpec(BaseModel):
@@ -205,12 +208,14 @@ class RunProvenance(BaseModel):
         """Human-readable ``label: value`` lines for reports."""
         m, c = self.measurement, self.candidate
         suite = m.eval_set_name or "(unnamed)"
+        scope_text = (
+            f"{len(m.task_hashes)} task(s) (subset of {m.total_eval_set_tasks})"
+            if m.is_subset and m.total_eval_set_tasks is not None
+            else f"{len(m.task_hashes)} task(s)"
+        )
         lines = [
             f"Run: {self.run_id} (TraceLens {self.tracelens_version})",
-            (
-                f"Eval set: {suite}, {len(m.task_hashes)} task(s), "
-                f"content {short_hash(m.eval_set_hash)}"
-            ),
+            (f"Eval set: {suite}, {scope_text}, content {short_hash(m.eval_set_hash)}"),
             "Graders: " + (", ".join(g.describe() for g in m.graders) or "none"),
             (
                 f"Runner: {m.runner.num_runs} run(s) per task, "
@@ -225,9 +230,7 @@ class RunProvenance(BaseModel):
             ),
         ]
         if self.started_at and self.completed_at:
-            lines.append(
-                f"Ran: {self.started_at.isoformat()} to {self.completed_at.isoformat()}"
-            )
+            lines.append(f"Ran: {self.started_at.isoformat()} to {self.completed_at.isoformat()}")
         return lines
 
 
@@ -240,6 +243,9 @@ def build_provenance(
     decision_spec: DecisionSpec | None,
     run_id: str,
     started_at: datetime | None,
+    is_subset: bool = False,
+    selected_task_ids: list[str] | None = None,
+    total_eval_set_tasks: int | None = None,
 ) -> RunProvenance:
     """Record the provenance of a run about to execute."""
     return RunProvenance(
@@ -249,11 +255,11 @@ def build_provenance(
             eval_set_name=eval_set.name,
             eval_set_hash=eval_set_hash(eval_set),
             task_hashes={t.task_id: task_content_hash(t) for t in eval_set.tasks},
-            graders=[
-                ComponentIdentity.of(g, name=getattr(g, "grader_id", None))
-                for g in graders
-            ],
+            graders=[ComponentIdentity.of(g, name=getattr(g, "grader_id", None)) for g in graders],
             runner=settings,
+            is_subset=is_subset,
+            selected_task_ids=selected_task_ids,
+            total_eval_set_tasks=total_eval_set_tasks,
         ),
         candidate=CandidateSpec(
             adapter=ComponentIdentity.of(adapter),
@@ -318,9 +324,7 @@ class CompatibilityReport(BaseModel):
 
     def summary_line(self) -> str:
         if self.status is not Compatibility.COMPATIBLE:
-            return f"Measurement compatibility: {self.status.value}; " + "; ".join(
-                self.reasons
-            )
+            return f"Measurement compatibility: {self.status.value}; " + "; ".join(self.reasons)
         shared = len(self.tasks.same) if self.tasks else 0
         candidate = (
             "candidate changed"
@@ -379,13 +383,9 @@ def check_compatibility(
             + _list_ids(tasks.changed)
         )
     if tasks.only_in_a:
-        reasons.append(
-            f"{len(tasks.only_in_a)} task(s) only in A: " + _list_ids(tasks.only_in_a)
-        )
+        reasons.append(f"{len(tasks.only_in_a)} task(s) only in A: " + _list_ids(tasks.only_in_a))
     if tasks.only_in_b:
-        reasons.append(
-            f"{len(tasks.only_in_b)} task(s) only in B: " + _list_ids(tasks.only_in_b)
-        )
+        reasons.append(f"{len(tasks.only_in_b)} task(s) only in B: " + _list_ids(tasks.only_in_b))
     if not (tasks.changed or tasks.only_in_a or tasks.only_in_b) and (
         ma.eval_set_hash != mb.eval_set_hash
     ):
@@ -408,9 +408,7 @@ def check_compatibility(
         if va != vb:
             notes.append(f"runner {name} differs ({va!r} vs {vb!r})")
     if a.tracelens_version != b.tracelens_version:
-        notes.append(
-            f"TraceLens version differs ({a.tracelens_version} vs {b.tracelens_version})"
-        )
+        notes.append(f"TraceLens version differs ({a.tracelens_version} vs {b.tracelens_version})")
 
     ca, cb = a.candidate, b.candidate
     adapter_changed = ca.adapter != cb.adapter

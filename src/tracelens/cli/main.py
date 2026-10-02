@@ -65,7 +65,8 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--debug", action="store_true",
+        "--debug",
+        action="store_true",
         help="Print full tracebacks for input and configuration errors",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -93,50 +94,62 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
-        "--config", default=None, metavar="FILE",
+        "--config",
+        default=None,
+        metavar="FILE",
         help=(
             "Run configuration file (tracelens.yaml, written by 'tracelens "
             "init'). Flags given explicitly override its values"
         ),
     )
     run_parser.add_argument(
-        "--eval-set", default=argparse.SUPPRESS,
+        "--eval-set",
+        default=argparse.SUPPRESS,
         help=(
             "Path to the eval set: a .json, .jsonl, or .csv file, or a "
             "directory (then pass --eval-set-format)"
         ),
     )
     run_parser.add_argument(
-        "--eval-set-format", choices=EVAL_SET_FORMATS, default=argparse.SUPPRESS,
-        help=(
-            "Format of --eval-set; inferred from the file suffix, required "
-            "for a directory"
-        ),
+        "--eval-set-format",
+        choices=EVAL_SET_FORMATS,
+        default=argparse.SUPPRESS,
+        help=("Format of --eval-set; inferred from the file suffix, required for a directory"),
     )
     run_parser.add_argument(
-        "--input-field", default=argparse.SUPPRESS,
+        "--input-field",
+        default=argparse.SUPPRESS,
         help=(
             "jsonl/csv eval sets: name of the column holding the task input "
             f"(default: {d['input_field']})"
         ),
     )
     run_parser.add_argument(
-        "--metadata-fields", nargs="+", default=argparse.SUPPRESS, metavar="FIELD",
+        "--metadata-fields",
+        nargs="+",
+        default=argparse.SUPPRESS,
+        metavar="FIELD",
         help=(
-            "jsonl/csv eval sets: foreign columns to keep in Task.metadata "
-            "(default: all of them)"
+            "jsonl/csv eval sets: foreign columns to keep in Task.metadata (default: all of them)"
         ),
     )
     run_parser.add_argument(
-        "--adapter", default=argparse.SUPPRESS,
+        "--adapter",
+        default=argparse.SUPPRESS,
         help="Dotted path to AgentAdapter class",
     )
     run_parser.add_argument(
-        "--graders", nargs="+", default=argparse.SUPPRESS,
+        "--graders",
+        nargs="+",
+        default=argparse.SUPPRESS,
         help="Dotted paths to Grader classes",
     )
     run_parser.add_argument(
-        "--task-id", nargs="+", default=argparse.SUPPRESS, dest="task_ids", metavar="ID",
+        "--task-id",
+        nargs="+",
+        default=argparse.SUPPRESS,
+        dest="task_ids",
+        metavar="ID",
         help=(
             "Run only these tasks of the eval set (a targeted rerun after "
             "'tracelens inspect'). This is a separate run: its provenance and "
@@ -144,19 +157,26 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
-        "--num-runs", type=int, default=argparse.SUPPRESS,
+        "--num-runs",
+        type=int,
+        default=argparse.SUPPRESS,
         help=f"Number of runs per task (default: {d['num_runs']})",
     )
     run_parser.add_argument(
-        "--max-concurrency", type=int, default=argparse.SUPPRESS,
+        "--max-concurrency",
+        type=int,
+        default=argparse.SUPPRESS,
         help=f"Max concurrent trials (default: {d['max_concurrency']})",
     )
     run_parser.add_argument(
-        "--timeout", type=float, default=argparse.SUPPRESS,
+        "--timeout",
+        type=float,
+        default=argparse.SUPPRESS,
         help=f"Timeout per trial in seconds (default: {d['timeout']:g})",
     )
     run_parser.add_argument(
-        "--baseline-check", action=argparse.BooleanOptionalAction,
+        "--baseline-check",
+        action=argparse.BooleanOptionalAction,
         default=argparse.SUPPRESS,
         help=(
             "Check results against baselines. Requires --baselines-file; "
@@ -165,11 +185,13 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
-        "--baselines-file", default=argparse.SUPPRESS,
+        "--baselines-file",
+        default=argparse.SUPPRESS,
         help="Path to baselines JSON file",
     )
     run_parser.add_argument(
-        "--require-baselines", action=argparse.BooleanOptionalAction,
+        "--require-baselines",
+        action=argparse.BooleanOptionalAction,
         default=argparse.SUPPRESS,
         help=(
             "Fail (exit 1) if any task in the eval set has no stored "
@@ -177,36 +199,45 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
-        "--fail-on-regression", default=argparse.SUPPRESS,
+        "--fail-on-regression",
+        default=argparse.SUPPRESS,
         choices=["minor", "moderate", "severe"],
-        help=(
-            "Minimum regression severity to fail "
-            f"(default: {d['fail_on_regression']})"
-        ),
+        help=(f"Minimum regression severity to fail (default: {d['fail_on_regression']})"),
     )
     run_parser.add_argument(
-        "--output", default=argparse.SUPPRESS,
+        "--runs-dir",
+        default=argparse.SUPPRESS,
+        help="Directory to write run artifacts under a run_id subdirectory",
+    )
+    run_parser.add_argument(
+        "--output",
+        default=argparse.SUPPRESS,
         help="Path to write JSON results",
     )
     run_parser.add_argument(
-        "--report", default=argparse.SUPPRESS,
+        "--report",
+        default=argparse.SUPPRESS,
         help="Path to write markdown report",
     )
     run_parser.add_argument(
-        "--html-report", default=argparse.SUPPRESS,
+        "--html-report",
+        default=argparse.SUPPRESS,
         help="Path to write HTML dashboard report",
     )
     run_parser.add_argument(
-        "--save-trials", default=argparse.SUPPRESS,
+        "--save-trials",
+        default=argparse.SUPPRESS,
         help="Path to write raw trial data (JSON) for replay and comparison",
     )
     run_parser.add_argument(
-        "--progress", action=argparse.BooleanOptionalAction,
+        "--progress",
+        action=argparse.BooleanOptionalAction,
         default=argparse.SUPPRESS,
         help="Print per-trial progress to stderr (default: off)",
     )
     run_parser.add_argument(
-        "--checkpoint", default=argparse.SUPPRESS,
+        "--checkpoint",
+        default=argparse.SUPPRESS,
         help=(
             "Path to a checkpoint file. Trials are periodically persisted "
             "there; re-running with the same path resumes, skipping "
@@ -214,7 +245,9 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
-        "--max-infra-retries", type=int, default=argparse.SUPPRESS,
+        "--max-infra-retries",
+        type=int,
+        default=argparse.SUPPRESS,
         help=(
             "Re-attempt trials that end in INFRA_ERROR up to N extra times "
             "with exponential backoff. Agent failures and timeouts never "
@@ -222,7 +255,9 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
-        "--infra-exceptions", default=argparse.SUPPRESS, nargs="+",
+        "--infra-exceptions",
+        default=argparse.SUPPRESS,
+        nargs="+",
         help=(
             "Dotted paths of extra exception types to classify as "
             "INFRA_ERROR instead of FAILED (e.g. builtins.OSError "
@@ -231,7 +266,8 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
-        "--decision-spec", default=argparse.SUPPRESS,
+        "--decision-spec",
+        default=argparse.SUPPRESS,
         help=(
             "Path to a DecisionSpec JSON file describing this run's "
             "configuration. Stamped onto transcripts and, together with a "
@@ -240,7 +276,9 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
-        "--noise-band", type=float, default=argparse.SUPPRESS,
+        "--noise-band",
+        type=float,
+        default=argparse.SUPPRESS,
         help=(
             "Absolute metric delta treated as within infra noise when "
             f"baseline and current infra configs differ (default: "
@@ -251,14 +289,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     # -- tracelens report --
     report_parser = subparsers.add_parser(
-        "report", help="Generate report from results",
+        "report",
+        help="Generate report from results",
     )
     report_parser.add_argument(
-        "--results", required=True,
+        "--results",
+        required=True,
         help="Path to JSON results file",
     )
     report_parser.add_argument(
-        "--format", default="markdown", choices=["markdown", "json", "html", "ci"],
+        "--format",
+        default="markdown",
+        choices=["markdown", "json", "html", "ci"],
         help=(
             "Output format: markdown, json, html, or ci, the one-line summary "
             "'tracelens run' printed, gate line included (default: markdown)"
@@ -371,8 +413,7 @@ def _print_gate_diagnostics(gate: GateResult) -> None:
             )
         elif task.infra_config_mismatch:
             diff = ", ".join(
-                f"{key}: {b} -> {c}"
-                for key, (b, c) in sorted(task.infra_config_diff.items())
+                f"{key}: {b} -> {c}" for key, (b, c) in sorted(task.infra_config_diff.items())
             )
             print(
                 f"[tracelens] note: infra config mismatch vs baseline for "
@@ -413,6 +454,22 @@ def _validate_run_parameters(args: argparse.Namespace) -> str | None:
             f"{name('--max-infra-retries', 'run.max_infra_retries')} cannot be negative "
             f"(got {args.max_infra_retries})"
         )
+    if args.runs_dir:
+        conflicts = [
+            flag
+            for flag, val in (
+                (name("--output", "run.outputs.results"), args.output),
+                (name("--report", "run.outputs.report"), args.report),
+                (name("--html-report", "run.outputs.html_report"), args.html_report),
+                (name("--save-trials", "run.outputs.trials"), args.save_trials),
+            )
+            if val is not None
+        ]
+        if conflicts:
+            return (
+                f"{name('--runs-dir', 'run.outputs.runs_dir')} cannot be used with individual "
+                f"output path(s): {', '.join(conflicts)}"
+            )
     return None
 
 
@@ -461,8 +518,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             baseline_manager = BaselineManager(args.baselines_file)
         except (ValueError, KeyError, TypeError) as exc:
             print(
-                f"Error: could not load baselines file "
-                f"{args.baselines_file}: {exc}",
+                f"Error: could not load baselines file {args.baselines_file}: {exc}",
                 file=sys.stderr,
             )
             return 2
@@ -491,8 +547,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             return 2
         if args.baselines_file:
             print(
-                f"[tracelens] warning: {baselines_file} has "
-                f"no effect without {baseline_check}",
+                f"[tracelens] warning: {baselines_file} has no effect without {baseline_check}",
                 file=sys.stderr,
             )
 
@@ -522,9 +577,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             )
             return 2
         try:
-            decision_spec = DecisionSpec.model_validate(
-                json.loads(spec_path.read_text())
-            )
+            decision_spec = DecisionSpec.model_validate(json.loads(spec_path.read_text()))
         except (json.JSONDecodeError, ValidationError) as exc:
             print(
                 f"Error: invalid --decision-spec file {args.decision_spec}: {exc}",
@@ -542,13 +595,16 @@ def cmd_run(args: argparse.Namespace) -> int:
         )
     except EvalSetLoadError as exc:
         return usage_error(str(exc), exc=exc, debug=debug)
-    if args.task_ids:
+    total_eval_set_tasks = len(tasks)
+    is_subset = bool(args.task_ids)
+    if is_subset:
         known = {task.task_id for task in tasks}
         unknown = [task_id for task_id in args.task_ids if task_id not in known]
         if unknown:
             return usage_error(
                 f"--task-id not in the eval set: {', '.join(unknown)}",
-                hint="Known task ids: " + ", ".join(sorted(known)[:20])
+                hint="Known task ids: "
+                + ", ".join(sorted(known)[:20])
                 + (f", and {len(known) - 20} more" if len(known) > 20 else ""),
             )
         wanted = set(args.task_ids)
@@ -558,7 +614,37 @@ def cmd_run(args: argparse.Namespace) -> int:
             + ", ".join(task.task_id for task in tasks),
             file=sys.stderr,
         )
-    eval_set = EvalSet(name=Path(args.eval_set).stem, tasks=tasks)
+
+    # Preflight collision check for subset runs using fixed legacy output paths
+    if args.task_ids and not args.runs_dir:
+        existing_fixed = [
+            (label, path)
+            for label, path in (
+                ("output", args.output),
+                ("report", args.report),
+                ("html_report", args.html_report),
+                ("save_trials", args.save_trials),
+            )
+            if path and Path(path).exists()
+        ]
+        if existing_fixed:
+            existing_desc = ", ".join(f"{lbl} ({p})" for lbl, p in existing_fixed)
+            return usage_error(
+                f"rerunning a subset with fixed output paths would overwrite previous run evidence: "
+                f"{existing_desc}",
+                hint=(
+                    "Pass --runs-dir (or set outputs.runs_dir in config) to isolate runs into "
+                    "run directories, or specify distinct file paths for this rerun."
+                ),
+            )
+
+    eval_set = EvalSet(
+        name=Path(args.eval_set).stem,
+        tasks=tasks,
+        is_subset=is_subset,
+        selected_task_ids=list(args.task_ids) if args.task_ids else None,
+        total_eval_set_tasks=total_eval_set_tasks,
+    )
 
     # Load adapter and graders (usage error -> exit 2, before any agent call)
     import_hint = (
@@ -573,7 +659,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     except (ImportError, AttributeError, TypeError) as exc:
         return usage_error(
             f"could not load adapter '{args.adapter}': {exc}",
-            hint=import_hint, exc=exc, debug=debug,
+            hint=import_hint,
+            exc=exc,
+            debug=debug,
         )
 
     graders = []
@@ -584,7 +672,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         except (ImportError, AttributeError, TypeError) as exc:
             return usage_error(
                 f"could not load grader '{grader_path}': {exc}",
-                hint=import_hint, exc=exc, debug=debug,
+                hint=import_hint,
+                exc=exc,
+                debug=debug,
             )
 
     # Build runner config
@@ -623,9 +713,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             baseline_manager,
             threshold=_severity_from_str(args.fail_on_regression),
             noise_band=(
-                args.noise_band
-                if args.noise_band is not None
-                else DEFAULT_NOISE_BAND_ABSOLUTE
+                args.noise_band if args.noise_band is not None else DEFAULT_NOISE_BAND_ABSOLUTE
             ),
             require_baselines=args.require_baselines,
             decision_spec=decision_spec,
@@ -636,22 +724,44 @@ def cmd_run(args: argparse.Namespace) -> int:
         gate = GateResult.not_requested()
     report.gate = gate
 
+    # Determine output destinations
+    out_results: str | None = args.output
+    out_report: str | None = args.report
+    out_html: str | None = args.html_report
+    out_trials: str | None = args.save_trials
+
+    if args.runs_dir:
+        run_dir = Path(args.runs_dir) / batch.batch_id
+        try:
+            run_dir.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            # Collision-safe allocation fallback
+            run_dir = Path(args.runs_dir) / f"{batch.batch_id}_{Path(args.eval_set).stem}"
+            run_dir.mkdir(parents=True, exist_ok=False)
+        except OSError as exc:
+            return usage_error(f"could not create run directory: {exc}", exc=exc, debug=debug)
+
+        out_results = str(run_dir / "results.json")
+        out_report = str(run_dir / "report.md")
+        out_html = str(run_dir / "report.html")
+        out_trials = str(run_dir / "trials.json")
+
     # Write outputs (always, even when the gate blocks: the artifacts are
     # the evidence). A write failure is a clear error, never a traceback.
     written: list[tuple[str, str]] = []
     try:
-        if args.output:
-            _write_output(args.output, json.dumps(report.to_dict(), indent=2, default=str))
-            written.append(("results", args.output))
-        if args.report:
-            _write_output(args.report, gen.render_markdown(report))
-            written.append(("report", args.report))
-        if args.html_report:
-            _write_output(args.html_report, gen.render_html(report))
-            written.append(("html report", args.html_report))
-        if args.save_trials:
-            _write_output(args.save_trials, json.dumps(batch.to_dict(), indent=2))
-            written.append(("trials", args.save_trials))
+        if out_results:
+            _write_output(out_results, json.dumps(report.to_dict(), indent=2, default=str))
+            written.append(("results", out_results))
+        if out_report:
+            _write_output(out_report, gen.render_markdown(report))
+            written.append(("report", out_report))
+        if out_html:
+            _write_output(out_html, gen.render_html(report))
+            written.append(("html report", out_html))
+        if out_trials:
+            _write_output(out_trials, json.dumps(batch.to_dict(), indent=2))
+            written.append(("trials", out_trials))
     except OSError as exc:
         return usage_error(f"could not write output file: {exc}", exc=exc, debug=debug)
     # Say where the artifacts went (stderr: stdout stays the summary only).
@@ -659,6 +769,15 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"[tracelens] wrote {label}: {path}", file=sys.stderr)
     if args.checkpoint:
         print(f"[tracelens] checkpoint: {args.checkpoint}", file=sys.stderr)
+
+    # Print a runnable inspect command hint on stderr when trials were saved
+    trials_entry = next((p for lbl, p in written if lbl == "trials"), None)
+    if trials_entry:
+        eval_set_flag = f" --eval-set {args.eval_set}" if getattr(args, "eval_set", None) else ""
+        print(
+            f"[tracelens] to inspect failures: tracelens inspect {trials_entry} --failures{eval_set_flag}",
+            file=sys.stderr,
+        )
 
     # CI summary to stdout, including the gate lines when a gate ran
     print(gen.render_ci_summary(report))
@@ -701,7 +820,8 @@ def cmd_report(args: argparse.Namespace) -> int:
         return usage_error(
             f"{args.results} is not a TraceLens results file ({exc})",
             hint="Pass the JSON written by 'tracelens run --output'.",
-            exc=exc, debug=debug,
+            exc=exc,
+            debug=debug,
         )
     gen = ReportGenerator()
 

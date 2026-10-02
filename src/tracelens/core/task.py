@@ -193,6 +193,11 @@ class EvalSet(BaseModel):
     default_num_runs: int = 1  # For pass@k
     default_timeout_seconds: float = 300.0
 
+    # Run scope metadata
+    is_subset: bool = False
+    selected_task_ids: list[str] | None = None
+    total_eval_set_tasks: int | None = None
+
     def filter_tasks(
         self,
         tags: list[str] | None = None,
@@ -202,7 +207,8 @@ class EvalSet(BaseModel):
     ) -> list[Task]:
         """Filter tasks by criteria."""
         filtered = [
-            t for t in self.tasks
+            t
+            for t in self.tasks
             if t.matches_filter(tags=tags, categories=categories, difficulties=difficulties)
         ]
         if max_tasks:
@@ -218,8 +224,10 @@ class EvalSet(BaseModel):
     ) -> "EvalSet":
         """Return a new EvalSet with only tasks matching the filter criteria."""
         filtered = self.filter_tasks(
-            tags=tags, categories=categories,
-            difficulties=difficulties, max_tasks=max_tasks,
+            tags=tags,
+            categories=categories,
+            difficulties=difficulties,
+            max_tasks=max_tasks,
         )
         return EvalSet(
             name=self.name,

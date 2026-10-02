@@ -162,9 +162,7 @@ def bootstrap_ci(
             ``n_bootstrap`` is less than 1.
     """
     if not 0.0 < confidence < 1.0:
-        raise ValueError(
-            f"confidence must be strictly between 0 and 1, got {confidence!r}"
-        )
+        raise ValueError(f"confidence must be strictly between 0 and 1, got {confidence!r}")
     if n_bootstrap < 1:
         raise ValueError(f"n_bootstrap must be at least 1, got {n_bootstrap!r}")
 
@@ -230,17 +228,14 @@ def estimate_metric(
 
     if n == 0:
         return MetricEstimate(
-            mean=0.0, std=0.0, n=0,
-            ci_lower=0.0, ci_upper=0.0, confidence=confidence
+            mean=0.0, std=0.0, n=0, ci_lower=0.0, ci_upper=0.0, confidence=confidence
         )
 
     mean = float(np.mean(values))
     std = float(np.std(values, ddof=1)) if n > 1 else 0.0
 
     # Bootstrap CI for the mean
-    _, ci_lower, ci_upper = bootstrap_ci(
-        values, confidence, n_bootstrap, "mean", seed
-    )
+    _, ci_lower, ci_upper = bootstrap_ci(values, confidence, n_bootstrap, "mean", seed)
 
     return MetricEstimate(
         mean=mean,
@@ -442,9 +437,7 @@ def compare_metrics(
     p_value = None
     if compute_p_value:
         p_value = permutation_test(
-            baseline_values, current_values,
-            n_permutations=n_bootstrap,
-            seed=seed
+            baseline_values, current_values, n_permutations=n_bootstrap, seed=seed
         )
 
     return ComparisonResult(
@@ -509,19 +502,15 @@ def compare_to_baseline_summary(
         relative_delta = float("inf") if delta != 0 else 0.0
 
     # Welch's t-test CI for difference
-    se_diff = np.sqrt(
-        (baseline_std ** 2 / baseline_n) +
-        (current_std ** 2 / current_n)
-    )
+    se_diff = np.sqrt((baseline_std**2 / baseline_n) + (current_std**2 / current_n))
 
     # Degrees of freedom (Welch-Satterthwaite). Undefined when either side
     # has a single sample (n-1 = 0), so fall back to the pooled df floor.
     if baseline_std > 0 and current_std > 0 and baseline_n > 1 and current_n > 1:
-        num = (baseline_std ** 2 / baseline_n + current_std ** 2 / current_n) ** 2
-        denom = (
-            (baseline_std ** 2 / baseline_n) ** 2 / (baseline_n - 1) +
-            (current_std ** 2 / current_n) ** 2 / (current_n - 1)
-        )
+        num = (baseline_std**2 / baseline_n + current_std**2 / current_n) ** 2
+        denom = (baseline_std**2 / baseline_n) ** 2 / (baseline_n - 1) + (
+            current_std**2 / current_n
+        ) ** 2 / (current_n - 1)
         df = num / denom if denom > 0 else 1
     else:
         df = max(baseline_n + current_n - 2, 1)
@@ -538,11 +527,14 @@ def compare_to_baseline_summary(
 
     # Effect size (approximate). The pooled denominator needs at least one
     # side with n > 1; otherwise treat the pooled spread as undefined.
-    pooled_std = np.sqrt(
-        ((baseline_n - 1) * baseline_std ** 2 +
-         (current_n - 1) * current_std ** 2) /
-        (baseline_n + current_n - 2)
-    ) if (baseline_std > 0 or current_std > 0) and baseline_n + current_n > 2 else 1.0
+    pooled_std = (
+        np.sqrt(
+            ((baseline_n - 1) * baseline_std**2 + (current_n - 1) * current_std**2)
+            / (baseline_n + current_n - 2)
+        )
+        if (baseline_std > 0 or current_std > 0) and baseline_n + current_n > 2
+        else 1.0
+    )
 
     cohens_d_val = delta / pooled_std if pooled_std > 0 else 0.0
 

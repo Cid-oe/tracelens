@@ -36,9 +36,7 @@ class EchoAdapter(AgentAdapter):
     async def run(self, task: Task) -> Transcript:
         type(self).run_count += 1
         transcript = Transcript(task_id=task.task_id, final_output=dict(task.input_data))
-        transcript.add_step(
-            TranscriptStep(step_type=StepType.LLM_CALL, tokens_in=10, tokens_out=5)
-        )
+        transcript.add_step(TranscriptStep(step_type=StepType.LLM_CALL, tokens_in=10, tokens_out=5))
         return transcript
 
 
@@ -63,22 +61,26 @@ def _reset_adapter_counter() -> None:
 @pytest.fixture
 def tasks_file(tmp_path: Path) -> Path:
     path = tmp_path / "tasks.json"
-    path.write_text(json.dumps({
-        "tasks": [
+    path.write_text(
+        json.dumps(
             {
-                "task_id": "t-pass",
-                "name": "passing task",
-                "description": "echoes a high value",
-                "input_data": {"value": 0.9},
-            },
-            {
-                "task_id": "t-fail",
-                "name": "failing task",
-                "description": "echoes a low value",
-                "input_data": {"value": 0.1},
-            },
-        ]
-    }))
+                "tasks": [
+                    {
+                        "task_id": "t-pass",
+                        "name": "passing task",
+                        "description": "echoes a high value",
+                        "input_data": {"value": 0.9},
+                    },
+                    {
+                        "task_id": "t-fail",
+                        "name": "failing task",
+                        "description": "echoes a low value",
+                        "input_data": {"value": 0.1},
+                    },
+                ]
+            }
+        )
+    )
     return path
 
 
@@ -95,22 +97,27 @@ def _run_main(monkeypatch: pytest.MonkeyPatch, *argv: str) -> int:
     return 0 if code is None else int(code)
 
 
-def test_run_produces_output_report_and_trials(
-    tasks_file: Path, tmp_path: Path
-) -> None:
+def test_run_produces_output_report_and_trials(tasks_file: Path, tmp_path: Path) -> None:
     out = tmp_path / "out.json"
     report_md = tmp_path / "report.md"
     trials = tmp_path / "trials.json"
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--num-runs", "2",
-        "--output", str(out),
-        "--report", str(report_md),
-        "--save-trials", str(trials),
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--num-runs",
+        "2",
+        "--output",
+        str(out),
+        "--report",
+        str(report_md),
+        "--save-trials",
+        str(trials),
     )
 
     assert exit_code == 0
@@ -133,27 +140,30 @@ def test_report_command_renders_all_formats(
     tasks_file: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     out = tmp_path / "out.json"
-    assert _run_cli(
-        "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--output", str(out),
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--output",
+            str(out),
+        )
+        == 0
+    )
     capsys.readouterr()  # discard run output
 
     for fmt in ("markdown", "json", "html"):
-        args = build_parser().parse_args(
-            ["report", "--results", str(out), "--format", fmt]
-        )
+        args = build_parser().parse_args(["report", "--results", str(out), "--format", fmt])
         assert cmd_report(args) == 0
         rendered = capsys.readouterr().out
         assert "t-pass" in rendered
 
 
-def test_baseline_check_blocks_on_regression(
-    tasks_file: Path, tmp_path: Path
-) -> None:
+def test_baseline_check_blocks_on_regression(tasks_file: Path, tmp_path: Path) -> None:
     baselines = tmp_path / "baselines.json"
     manager = BaselineManager(baselines)
     baseline = TaskBaseline(task_id="t-fail")
@@ -163,46 +173,57 @@ def test_baseline_check_blocks_on_regression(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--num-runs", "2",
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--num-runs",
+        "2",
         "--baseline-check",
-        "--baselines-file", str(baselines),
-        "--fail-on-regression", "moderate",
+        "--baselines-file",
+        str(baselines),
+        "--fail-on-regression",
+        "moderate",
     )
 
     assert exit_code == 1
 
 
-def test_baseline_check_passes_without_regression(
-    tasks_file: Path, tmp_path: Path
-) -> None:
+def test_baseline_check_passes_without_regression(tasks_file: Path, tmp_path: Path) -> None:
     baselines = _write_pass_baseline(tmp_path, {"t-pass": 0.9})
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--num-runs", "2",
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--num-runs",
+        "2",
         "--baseline-check",
-        "--baselines-file", str(baselines),
+        "--baselines-file",
+        str(baselines),
     )
 
     assert exit_code == 0
 
 
-def test_checkpoint_resume_skips_completed_trials(
-    tasks_file: Path, tmp_path: Path
-) -> None:
+def test_checkpoint_resume_skips_completed_trials(tasks_file: Path, tmp_path: Path) -> None:
     checkpoint = tmp_path / "checkpoint.json"
     argv = (
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--checkpoint", str(checkpoint),
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--checkpoint",
+        str(checkpoint),
     )
 
     assert _run_cli(*argv) == 0
@@ -222,10 +243,14 @@ def test_corrupt_checkpoint_fails_cleanly(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--checkpoint", str(checkpoint),
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--checkpoint",
+        str(checkpoint),
     )
 
     assert exit_code == 2
@@ -236,13 +261,19 @@ def test_corrupt_checkpoint_fails_cleanly(
 def test_progress_flag_prints_to_stderr(
     tasks_file: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    assert _run_cli(
-        "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--progress",
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--progress",
+        )
+        == 0
+    )
 
     err = capsys.readouterr().err
     assert "2/2 trials complete" in err
@@ -269,18 +300,16 @@ def test_init_scaffolds_a_runnable_eval_project(
         ".github/workflows/eval.yml",
     }
     assert expected_files == {
-        str(path.relative_to(project))
-        for path in project.rglob("*")
-        if path.is_file()
+        str(path.relative_to(project)) for path in project.rglob("*") if path.is_file()
     }
 
     # The one documented command: no flags beyond the config file.
     args = build_parser().parse_args(["run", "--config", "tracelens.yaml"])
 
     assert cmd_run(args) == 0
-    assert json.loads((project / "eval/results/results.json").read_text())[
-        "overall_pass_rate"
-    ] == 1.0
+    assert (
+        json.loads((project / "eval/results/results.json").read_text())["overall_pass_rate"] == 1.0
+    )
     for name in ("report.md", "report.html", "trials.json"):
         assert (project / "eval/results" / name).exists(), name
 
@@ -325,9 +354,7 @@ def _write_pass_baseline(tmp_path: Path, task_ids: dict[str, float]) -> Path:
             std=0.05,
             sample_size=10,
         )
-        baseline.add_metric(
-            metric_name="mean_score", value=score, std=0.05, sample_size=10
-        )
+        baseline.add_metric(metric_name="mean_score", value=score, std=0.05, sample_size=10)
         manager.set_baseline(baseline)
     manager.save()
     return baselines
@@ -340,9 +367,12 @@ def test_baseline_check_without_baselines_file_errors_before_running(
     caught before any eval time is spent — not a silent skip."""
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--baseline-check",
     )
 
@@ -358,11 +388,15 @@ def test_baseline_check_with_missing_baselines_file_errors_before_running(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--baseline-check",
-        "--baselines-file", str(missing),
+        "--baselines-file",
+        str(missing),
     )
 
     assert exit_code == 2
@@ -381,11 +415,15 @@ def test_baseline_check_warns_and_counts_tasks_without_baseline(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--baseline-check",
-        "--baselines-file", str(baselines),
+        "--baselines-file",
+        str(baselines),
     )
 
     assert exit_code == 0
@@ -403,11 +441,15 @@ def test_require_baselines_fails_when_any_task_has_no_baseline(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--baseline-check",
-        "--baselines-file", str(baselines),
+        "--baselines-file",
+        str(baselines),
         "--require-baselines",
     )
 
@@ -426,11 +468,15 @@ def test_gate_summary_printed_when_all_tasks_checked(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--baseline-check",
-        "--baselines-file", str(baselines),
+        "--baselines-file",
+        str(baselines),
     )
 
     assert exit_code == 0
@@ -446,10 +492,14 @@ def test_baselines_file_without_baseline_check_warns(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--baselines-file", str(baselines),
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--baselines-file",
+        str(baselines),
     )
 
     assert exit_code == 0
@@ -463,9 +513,7 @@ class DiskFullAdapter(AgentAdapter):
         raise OSError(28, "No space left on device")
 
 
-def test_infra_exceptions_flag_extends_classification(
-    tasks_file: Path, tmp_path: Path
-) -> None:
+def test_infra_exceptions_flag_extends_classification(tasks_file: Path, tmp_path: Path) -> None:
     """--infra-exceptions lets CI declare which exception types are infra
     (downstream policy), so those failures land in infra_error_rate
     instead of masquerading as agent failures."""
@@ -473,11 +521,16 @@ def test_infra_exceptions_flag_extends_classification(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", "tests.integration.test_cli_e2e.DiskFullAdapter",
-        "--graders", GRADER,
-        "--infra-exceptions", "builtins.OSError",
-        "--output", str(out),
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        "tests.integration.test_cli_e2e.DiskFullAdapter",
+        "--graders",
+        GRADER,
+        "--infra-exceptions",
+        "builtins.OSError",
+        "--output",
+        str(out),
     )
 
     assert exit_code == 0
@@ -489,10 +542,14 @@ def test_infra_exceptions_flag_rejects_non_exception_types(
 ) -> None:
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--infra-exceptions", "builtins.str",
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--infra-exceptions",
+        "builtins.str",
     )
 
     assert exit_code == 2
@@ -504,10 +561,14 @@ def test_infra_exceptions_flag_rejects_unimportable_path(
 ) -> None:
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--infra-exceptions", "no.such.Error",
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--infra-exceptions",
+        "no.such.Error",
     )
 
     assert exit_code == 2
@@ -522,12 +583,8 @@ class SpecStampingAdapter(AgentAdapter):
     a real adapter that knows its runtime config would."""
 
     async def run(self, task: Task) -> Transcript:
-        transcript = Transcript(
-            task_id=task.task_id, final_output=dict(task.input_data)
-        )
-        transcript.decision_spec = DecisionSpec(
-            infra=InfraConfig(memory_hard_limit_mb=512)
-        )
+        transcript = Transcript(task_id=task.task_id, final_output=dict(task.input_data))
+        transcript.decision_spec = DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=512))
         return transcript
 
 
@@ -537,35 +594,33 @@ def noise_tasks_file(tmp_path: Path) -> Path:
     inside the 3pp infra-noise band but a 10% relative drop, so it
     blocks unless noise-awareness kicks in."""
     path = tmp_path / "noise_tasks.json"
-    path.write_text(json.dumps({
-        "tasks": [
+    path.write_text(
+        json.dumps(
             {
-                "task_id": "t-noise",
-                "name": "noise task",
-                "description": "echoes a value 2pp under baseline",
-                "input_data": {"value": 0.18},
-            },
-        ]
-    }))
+                "tasks": [
+                    {
+                        "task_id": "t-noise",
+                        "name": "noise task",
+                        "description": "echoes a value 2pp under baseline",
+                        "input_data": {"value": 0.18},
+                    },
+                ]
+            }
+        )
+    )
     return path
 
 
-def _noise_baseline(
-    tmp_path: Path, with_spec: bool
-) -> Path:
+def _noise_baseline(tmp_path: Path, with_spec: bool) -> Path:
     baselines = tmp_path / "baselines.json"
     manager = BaselineManager(baselines)
     baseline = TaskBaseline(
         task_id="t-noise",
         decision_spec=(
-            DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=2048))
-            if with_spec
-            else None
+            DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=2048)) if with_spec else None
         ),
     )
-    baseline.add_metric(
-        metric_name="mean_score", value=0.2, std=0.001, sample_size=10
-    )
+    baseline.add_metric(metric_name="mean_score", value=0.2, std=0.001, sample_size=10)
     manager.set_baseline(baseline)
     manager.save()
     return baselines
@@ -573,28 +628,30 @@ def _noise_baseline(
 
 def _write_current_spec(tmp_path: Path) -> Path:
     spec_path = tmp_path / "current_spec.json"
-    spec_path.write_text(json.dumps(
-        DecisionSpec(
-            infra=InfraConfig(memory_hard_limit_mb=512)
-        ).model_dump(mode="json")
-    ))
+    spec_path.write_text(
+        json.dumps(
+            DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=512)).model_dump(mode="json")
+        )
+    )
     return spec_path
 
 
-def test_gate_blocks_small_delta_without_specs(
-    noise_tasks_file: Path, tmp_path: Path
-) -> None:
+def test_gate_blocks_small_delta_without_specs(noise_tasks_file: Path, tmp_path: Path) -> None:
     """Control: with no DecisionSpec on either side, the 10%-relative
     regression blocks as before."""
     baselines = _noise_baseline(tmp_path, with_spec=False)
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(noise_tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(noise_tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--baseline-check",
-        "--baselines-file", str(baselines),
+        "--baselines-file",
+        str(baselines),
     )
 
     assert exit_code == 1
@@ -611,12 +668,17 @@ def test_decision_spec_file_enables_noise_aware_gate(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(noise_tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(noise_tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--baseline-check",
-        "--baselines-file", str(baselines),
-        "--decision-spec", str(spec_path),
+        "--baselines-file",
+        str(baselines),
+        "--decision-spec",
+        str(spec_path),
     )
 
     captured = capsys.readouterr()
@@ -633,11 +695,15 @@ def test_adapter_stamped_spec_enables_noise_aware_gate(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(noise_tasks_file),
-        "--adapter", "tests.integration.test_cli_e2e.SpecStampingAdapter",
-        "--graders", GRADER,
+        "--eval-set",
+        str(noise_tasks_file),
+        "--adapter",
+        "tests.integration.test_cli_e2e.SpecStampingAdapter",
+        "--graders",
+        GRADER,
         "--baseline-check",
-        "--baselines-file", str(baselines),
+        "--baselines-file",
+        str(baselines),
     )
 
     captured = capsys.readouterr()
@@ -645,9 +711,7 @@ def test_adapter_stamped_spec_enables_noise_aware_gate(
     assert "infra config mismatch" in captured.out.lower()
 
 
-def test_noise_band_flag_tightens_the_band(
-    noise_tasks_file: Path, tmp_path: Path
-) -> None:
+def test_noise_band_flag_tightens_the_band(noise_tasks_file: Path, tmp_path: Path) -> None:
     """--noise-band 0.01 shrinks the band below the 2pp delta, so the
     same mismatched-infra regression blocks again."""
     baselines = _noise_baseline(tmp_path, with_spec=True)
@@ -655,13 +719,19 @@ def test_noise_band_flag_tightens_the_band(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(noise_tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(noise_tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--baseline-check",
-        "--baselines-file", str(baselines),
-        "--decision-spec", str(spec_path),
-        "--noise-band", "0.01",
+        "--baselines-file",
+        str(baselines),
+        "--decision-spec",
+        str(spec_path),
+        "--noise-band",
+        "0.01",
     )
 
     assert exit_code == 1
@@ -672,10 +742,14 @@ def test_decision_spec_flag_rejects_missing_file(
 ) -> None:
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(noise_tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--decision-spec", str(tmp_path / "nope.json"),
+        "--eval-set",
+        str(noise_tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--decision-spec",
+        str(tmp_path / "nope.json"),
     )
 
     assert exit_code == 2
@@ -698,8 +772,12 @@ class FlakyInfraAdapter(AgentAdapter):
     ],
 )
 def test_harness_failure_makes_baseline_gate_unevaluable(
-    tasks_file: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str],
-    adapter: str, grader: str, require_baselines: bool,
+    tasks_file: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    adapter: str,
+    grader: str,
+    require_baselines: bool,
 ) -> None:
     """Missing harness evidence is neither a regression nor a passing gate."""
     baselines = _write_pass_baseline(tmp_path, {"t-pass": 0.9, "t-fail": 0.1})
@@ -708,13 +786,19 @@ def test_harness_failure_makes_baseline_gate_unevaluable(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", adapter,
-        "--graders", grader,
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        adapter,
+        "--graders",
+        grader,
         "--baseline-check",
-        "--baselines-file", str(baselines),
-        "--output", str(output),
-        "--save-trials", str(trials),
+        "--baselines-file",
+        str(baselines),
+        "--output",
+        str(output),
+        "--save-trials",
+        str(trials),
         *(["--require-baselines"] if require_baselines else []),
     )
 
@@ -772,18 +856,33 @@ class SlowAdapter(EchoAdapter):
 
 @pytest.mark.parametrize(
     "adapter",
-    ["tests.integration.test_cli_e2e.DiskFullAdapter", "tests.integration.test_cli_e2e.SlowAdapter"],
+    [
+        "tests.integration.test_cli_e2e.DiskFullAdapter",
+        "tests.integration.test_cli_e2e.SlowAdapter",
+    ],
 )
 def test_agent_execution_failures_remain_regression_observations(
     tasks_file: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], adapter: str
 ) -> None:
     baselines = _write_pass_baseline(tmp_path, {"t-pass": 0.9, "t-fail": 0.9})
 
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", adapter,
-        "--graders", GRADER, "--timeout", "0.01",
-        "--baseline-check", "--baselines-file", str(baselines),
-    ) == 1
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            adapter,
+            "--graders",
+            GRADER,
+            "--timeout",
+            "0.01",
+            "--baseline-check",
+            "--baselines-file",
+            str(baselines),
+        )
+        == 1
+    )
 
     captured = capsys.readouterr()
     assert "2 checked" in captured.out
@@ -801,10 +900,18 @@ def test_agent_execution_failures_remain_regression_observations(
 def test_non_gated_harness_failures_keep_observational_exit_behavior(
     tasks_file: Path, capsys: pytest.CaptureFixture[str], adapter: str, grader: str
 ) -> None:
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", adapter,
-        "--graders", grader,
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            adapter,
+            "--graders",
+            grader,
+        )
+        == 0
+    )
     assert "Baseline check:" not in capsys.readouterr().out
 
 
@@ -817,18 +924,32 @@ def test_non_gated_harness_failures_keep_observational_exit_behavior(
     ],
 )
 def test_other_task_results_cannot_hide_an_unevaluable_task(
-    tasks_file: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str],
-    adapter: str, grader: str, regression: bool,
+    tasks_file: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    adapter: str,
+    grader: str,
+    regression: bool,
 ) -> None:
     baselines = _write_pass_baseline(
         tmp_path, {"t-pass": 0.9, "t-fail": 0.9 if regression else 0.1}
     )
 
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file),
-        "--adapter", adapter, "--graders", grader,
-        "--baseline-check", "--baselines-file", str(baselines),
-    ) == 2
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            adapter,
+            "--graders",
+            grader,
+            "--baseline-check",
+            "--baselines-file",
+            str(baselines),
+        )
+        == 2
+    )
 
     captured = capsys.readouterr()
     assert "1 checked" in captured.out
@@ -843,14 +964,26 @@ def test_partial_trial_loss_keeps_gradable_task_comparisons(
 ) -> None:
     baselines = _write_pass_baseline(tmp_path, {"t-pass": 0.9, "t-fail": 0.1})
 
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file),
-        "--adapter", "tests.integration.test_cli_e2e.PartialInfraAdapter",
-        "--graders", GRADER, "--num-runs", "1" if retry else "2",
-        "--max-infra-retries", "1" if retry else "0",
-        "--baseline-check", "--baselines-file", str(baselines),
-        "--require-baselines",
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            "tests.integration.test_cli_e2e.PartialInfraAdapter",
+            "--graders",
+            GRADER,
+            "--num-runs",
+            "1" if retry else "2",
+            "--max-infra-retries",
+            "1" if retry else "0",
+            "--baseline-check",
+            "--baselines-file",
+            str(baselines),
+            "--require-baselines",
+        )
+        == 0
+    )
 
     captured = capsys.readouterr()
     assert "2 checked" in captured.out
@@ -871,12 +1004,23 @@ def test_baseline_gate_requires_at_least_one_comparison(
         baseline_values = {"foreign-task": 0.9}
     baselines = _write_pass_baseline(tmp_path, baseline_values)
 
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER, "--graders", GRADER,
-        "--num-runs", "1",
-        "--baseline-check", "--baselines-file", str(baselines),
-    ) == 2
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--num-runs",
+            "1",
+            "--baseline-check",
+            "--baselines-file",
+            str(baselines),
+        )
+        == 2
+    )
 
     captured = capsys.readouterr()
     assert "0 checked" in captured.out
@@ -886,7 +1030,9 @@ def test_baseline_gate_requires_at_least_one_comparison(
 
 @pytest.mark.parametrize("metric", [None, "domain_quality"])
 def test_task_without_comparable_baseline_metrics_invalidates_gate(
-    tasks_file: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str],
+    tasks_file: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
     metric: str | None,
 ) -> None:
     baselines = _write_pass_baseline(tmp_path, {"t-pass": 0.9})
@@ -897,11 +1043,21 @@ def test_task_without_comparable_baseline_metrics_invalidates_gate(
     manager.set_baseline(baseline)
     manager.save()
 
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER, "--graders", GRADER,
-        "--baseline-check", "--baselines-file", str(baselines),
-    ) == 2
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--baseline-check",
+            "--baselines-file",
+            str(baselines),
+        )
+        == 2
+    )
 
     captured = capsys.readouterr()
     assert "1 checked" in captured.out
@@ -926,11 +1082,25 @@ def test_baseline_exit_contract_in_real_cli_process(
         tmp_path, {"t-pass": 0.9, "t-fail": 0.9 if expected == 1 else 0.1}
     )
     result = subprocess.run(
-        [sys.executable, "-m", "tracelens.cli.main", "run",
-         "--eval-set", str(tasks_file), "--adapter", adapter, "--graders", grader,
-         "--baseline-check", "--baselines-file", str(baselines)],
+        [
+            sys.executable,
+            "-m",
+            "tracelens.cli.main",
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            adapter,
+            "--graders",
+            grader,
+            "--baseline-check",
+            "--baselines-file",
+            str(baselines),
+        ],
         cwd=Path(__file__).resolve().parents[2],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
 
     assert result.returncode == expected, result.stdout + result.stderr
@@ -946,11 +1116,15 @@ def test_corrupt_baselines_file_errors_before_running(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--baseline-check",
-        "--baselines-file", str(baselines),
+        "--baselines-file",
+        str(baselines),
     )
 
     assert exit_code == 2
@@ -965,11 +1139,15 @@ def test_require_baselines_without_baseline_check_errors(
 
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
         "--require-baselines",
-        "--baselines-file", str(baselines),
+        "--baselines-file",
+        str(baselines),
     )
 
     assert exit_code == 2
@@ -982,10 +1160,14 @@ def test_noise_band_without_baseline_check_errors(
 ) -> None:
     exit_code = _run_cli(
         "run",
-        "--eval-set", str(tasks_file),
-        "--adapter", ADAPTER,
-        "--graders", GRADER,
-        "--noise-band", "0.05",
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--noise-band",
+        "0.05",
     )
 
     assert exit_code == 2
@@ -1005,10 +1187,26 @@ def test_gate_decision_is_persisted_and_rerendered(
     report_html = tmp_path / "report.html"
 
     exit_code = _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        "--num-runs", "2", "--baseline-check", "--baselines-file", str(baselines),
-        "--fail-on-regression", "moderate",
-        "--output", str(output), "--report", str(report_md), "--html-report", str(report_html),
+        "run",
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--num-runs",
+        "2",
+        "--baseline-check",
+        "--baselines-file",
+        str(baselines),
+        "--fail-on-regression",
+        "moderate",
+        "--output",
+        str(output),
+        "--report",
+        str(report_md),
+        "--html-report",
+        str(report_html),
     )
     captured = capsys.readouterr()
     assert exit_code == 1
@@ -1051,11 +1249,23 @@ def test_unevaluable_and_non_gated_decisions_are_persisted(
     baselines = _write_pass_baseline(tmp_path, {"t-pass": 0.9, "t-fail": 0.1})
     output = tmp_path / "results.json"
 
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file),
-        "--adapter", "tests.integration.test_cli_e2e.FlakyInfraAdapter", "--graders", GRADER,
-        "--baseline-check", "--baselines-file", str(baselines), "--output", str(output),
-    ) == 2
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            "tests.integration.test_cli_e2e.FlakyInfraAdapter",
+            "--graders",
+            GRADER,
+            "--baseline-check",
+            "--baselines-file",
+            str(baselines),
+            "--output",
+            str(output),
+        )
+        == 2
+    )
     capsys.readouterr()
     gate = json.loads(output.read_text())["gate"]
     assert gate["status"] == "unevaluable" and gate["exit_code"] == 2
@@ -1065,13 +1275,25 @@ def test_unevaluable_and_non_gated_decisions_are_persisted(
     assert json.loads(output.read_text())["infra_error_count"] == 2
     assert gate["blocking_regressions"] == 0
 
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        "--output", str(output),
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--output",
+            str(output),
+        )
+        == 0
+    )
     capsys.readouterr()
     assert json.loads(output.read_text())["gate"] == {
-        **json.loads(output.read_text())["gate"], "status": "not_requested", "exit_code": 0,
+        **json.loads(output.read_text())["gate"],
+        "status": "not_requested",
+        "exit_code": 0,
     }
 
 
@@ -1098,8 +1320,15 @@ def test_output_write_failure_is_a_clear_error(
     blocker = tmp_path / "file.txt"
     blocker.write_text("not a directory")
     exit_code = _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        "--output", str(blocker / "results.json"),
+        "run",
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        ADAPTER,
+        "--graders",
+        GRADER,
+        "--output",
+        str(blocker / "results.json"),
     )
     assert exit_code == 2
     captured = capsys.readouterr()
@@ -1229,15 +1458,35 @@ def test_run_accepts_jsonl_and_csv_eval_sets(
     tasks_file: Path, tmp_path: Path, fmt: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
     baseline_output = tmp_path / "json-results.json"
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        "--output", str(baseline_output),
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--output",
+            str(baseline_output),
+        )
+        == 0
+    )
     other_output = tmp_path / f"{fmt}-results.json"
-    assert _run_cli(
-        "run", "--eval-set", str(_equivalent_task_files(tmp_path)[fmt]),
-        "--adapter", ADAPTER, "--graders", GRADER, "--output", str(other_output),
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(_equivalent_task_files(tmp_path)[fmt]),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--output",
+            str(other_output),
+        )
+        == 0
+    )
     capsys.readouterr()
 
     def _per_task(path: Path) -> dict[str, float]:
@@ -1247,19 +1496,30 @@ def test_run_accepts_jsonl_and_csv_eval_sets(
     assert _per_task(other_output) == _per_task(baseline_output) == {"t-pass": 1.0, "t-fail": 0.0}
 
 
-def test_run_maps_foreign_input_columns(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_run_maps_foreign_input_columns(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     prompts = tmp_path / "prompts.jsonl"
     prompts.write_text(
         json.dumps({"task_id": "t-pass", "prompt": {"value": 0.9}, "subject": "geo"}) + "\n"
     )
     output = tmp_path / "results.json"
-    assert _run_cli(
-        "run", "--eval-set", str(prompts), "--input-field", "prompt",
-        "--metadata-fields", "subject",
-        "--adapter", ADAPTER, "--graders", GRADER, "--output", str(output),
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(prompts),
+            "--input-field",
+            "prompt",
+            "--metadata-fields",
+            "subject",
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--output",
+            str(output),
+        )
+        == 0
+    )
     capsys.readouterr()
     assert json.loads(output.read_text())["task_summaries"][0]["pass_rate"] == 1.0
 
@@ -1288,9 +1548,18 @@ def test_eval_set_load_failures_exit_2_before_running(
     else:
         target = tmp_path / "missing.json"
 
-    assert _run_cli(
-        "run", "--eval-set", str(target), "--adapter", ADAPTER, "--graders", GRADER,
-    ) == 2
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(target),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+        )
+        == 2
+    )
     captured = capsys.readouterr()
     assert expected_error in captured.err
     assert "Traceback" not in captured.err
@@ -1302,15 +1571,30 @@ def test_eval_set_load_failures_exit_2_before_running(
 
 @pytest.mark.parametrize(
     "flag, value",
-    [("--num-runs", "0"), ("--max-concurrency", "0"), ("--timeout", "0"), ("--max-infra-retries", "-1")],
+    [
+        ("--num-runs", "0"),
+        ("--max-concurrency", "0"),
+        ("--timeout", "0"),
+        ("--max-infra-retries", "-1"),
+    ],
 )
 def test_invalid_run_parameters_exit_2_before_running(
     tasks_file: Path, capsys: pytest.CaptureFixture[str], flag: str, value: str
 ) -> None:
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        flag, value,
-    ) == 2
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            flag,
+            value,
+        )
+        == 2
+    )
     captured = capsys.readouterr()
     assert flag in captured.err and captured.err.startswith("Error:")
     assert captured.out == ""
@@ -1321,8 +1605,13 @@ def test_unimportable_adapter_is_a_usage_error_with_a_hint(
     tasks_file: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     argv = [
-        "run", "--eval-set", str(tasks_file),
-        "--adapter", "tests.integration.test_cli_e2e.NoSuchAdapter", "--graders", GRADER,
+        "run",
+        "--eval-set",
+        str(tasks_file),
+        "--adapter",
+        "tests.integration.test_cli_e2e.NoSuchAdapter",
+        "--graders",
+        GRADER,
     ]
     assert _run_cli(*argv) == 2
     captured = capsys.readouterr()
@@ -1347,11 +1636,28 @@ def test_outputs_are_listed_on_stderr_and_stdout_is_only_the_summary(
     report = tmp_path / "out" / "report.md"
     trials = tmp_path / "out" / "trials.json"
     result = subprocess.run(
-        [sys.executable, "-m", "tracelens.cli.main", "run",
-         "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-         "--output", str(output), "--report", str(report), "--save-trials", str(trials)],
+        [
+            sys.executable,
+            "-m",
+            "tracelens.cli.main",
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--output",
+            str(output),
+            "--report",
+            str(report),
+            "--save-trials",
+            str(trials),
+        ],
         cwd=Path(__file__).resolve().parents[2],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     stdout_lines = [line for line in result.stdout.splitlines() if line.strip()]
@@ -1368,7 +1674,9 @@ def test_report_and_sample_input_errors_exit_2_in_a_real_process(tmp_path: Path)
         result = subprocess.run(
             [sys.executable, "-m", "tracelens.cli.main", *argv],
             cwd=Path(__file__).resolve().parents[2],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
         assert result.returncode == 2, argv
         assert "not found" in result.stderr and "Traceback" not in result.stderr
@@ -1382,7 +1690,10 @@ def _tracelens(*argv: str, cwd: Path) -> subprocess.CompletedProcess[str]:
     """Run the CLI in a real process from ``cwd``."""
     return subprocess.run(
         [sys.executable, "-m", "tracelens.cli.main", *argv],
-        cwd=cwd, capture_output=True, text=True, timeout=120,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        timeout=120,
     )
 
 
@@ -1442,9 +1753,7 @@ def test_config_values_yield_to_explicit_flags_in_a_real_process(tmp_path: Path)
         ),
     ],
 )
-def test_invalid_config_exits_2_in_a_real_process(
-    tmp_path: Path, text: str, fragment: str
-) -> None:
+def test_invalid_config_exits_2_in_a_real_process(tmp_path: Path, text: str, fragment: str) -> None:
     (tmp_path / "tracelens.yaml").write_text(text)
     result = _tracelens("run", "--config", "tracelens.yaml", cwd=tmp_path)
     assert result.returncode == 2, result.stdout + result.stderr
@@ -1500,11 +1809,26 @@ def test_results_and_trials_carry_provenance_and_report_rerenders_it(
     out = tmp_path / "results.json"
     trials = tmp_path / "trials.json"
     md = tmp_path / "report.md"
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        "--num-runs", "2", "--output", str(out), "--save-trials", str(trials),
-        "--report", str(md),
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--num-runs",
+            "2",
+            "--output",
+            str(out),
+            "--save-trials",
+            str(trials),
+            "--report",
+            str(md),
+        )
+        == 0
+    )
     results = json.loads(out.read_text())
     prov = results["provenance"]
     assert prov["schema_version"] == 1
@@ -1534,10 +1858,22 @@ def test_task_id_runs_only_the_selected_tasks(
     tasks_file: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     out = tmp_path / "results.json"
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        "--task-id", "t-fail", "--output", str(out),
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--task-id",
+            "t-fail",
+            "--output",
+            str(out),
+        )
+        == 0
+    )
     captured = capsys.readouterr()
     assert "[tracelens] running 1 of 2 task(s): t-fail" in captured.err
     results = json.loads(out.read_text())
@@ -1548,10 +1884,20 @@ def test_task_id_runs_only_the_selected_tasks(
 def test_unknown_task_id_is_a_usage_error_before_running(
     tasks_file: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        "--task-id", "t-nope",
-    ) == 2
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--task-id",
+            "t-nope",
+        )
+        == 2
+    )
     err = capsys.readouterr().err
     assert "--task-id not in the eval set: t-nope" in err
     assert "Known task ids: t-fail, t-pass" in err
@@ -1587,21 +1933,153 @@ def test_report_format_ci_reprints_the_run_summary(
     """`report --format ci` prints exactly what `run` printed, gate line included,
     from the recorded decision, and exits 0 even when the gate blocked."""
     out = tmp_path / "results.json"
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        "--output", str(out),
-    ) == 0
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--output",
+            str(out),
+        )
+        == 0
+    )
     run_stdout = capsys.readouterr().out
     assert run_stdout.startswith("TraceLens: ")
-    assert cmd_report(build_parser().parse_args(["report", "--results", str(out), "--format", "ci"])) == 0
+    assert (
+        cmd_report(build_parser().parse_args(["report", "--results", str(out), "--format", "ci"]))
+        == 0
+    )
     assert capsys.readouterr().out == run_stdout
 
     baselines = _write_pass_baseline(tmp_path, {"t-pass": 0.9, "t-fail": 0.9})
-    assert _run_cli(
-        "run", "--eval-set", str(tasks_file), "--adapter", ADAPTER, "--graders", GRADER,
-        "--output", str(out), "--baseline-check", "--baselines-file", str(baselines),
-    ) == 1
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--output",
+            str(out),
+            "--baseline-check",
+            "--baselines-file",
+            str(baselines),
+        )
+        == 1
+    )
     gated_stdout = capsys.readouterr().out
     assert "Baseline check:" in gated_stdout and "REGRESSION DETECTED" in gated_stdout
-    assert cmd_report(build_parser().parse_args(["report", "--results", str(out), "--format", "ci"])) == 0
+    assert (
+        cmd_report(build_parser().parse_args(["report", "--results", str(out), "--format", "ci"]))
+        == 0
+    )
     assert capsys.readouterr().out == gated_stdout
+
+
+# --- Issue #101: run directory mode & subset rerun safety ---------------------
+
+
+def test_legacy_fixed_path_collision_on_subset_rerun_exits_2(
+    tasks_file: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Rerunning a subset when fixed legacy output files exist exits 2 without running adapter."""
+    out = tmp_path / "results.json"
+    out.write_text("existing evidence")
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--task-id",
+            "t-pass",
+            "--output",
+            str(out),
+        )
+        == 2
+    )
+    err = capsys.readouterr().err
+    assert "rerunning a subset with fixed output paths would overwrite previous run evidence" in err
+    assert "Pass --runs-dir (or set outputs.runs_dir in config)" in err
+    assert out.read_text() == "existing evidence"
+    assert EchoAdapter.run_count == 0
+
+
+def test_runs_dir_mode_creates_isolated_run_artifacts_and_inspect_hint(
+    tasks_file: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--runs-dir isolates full run and subset rerun into distinct run directories and prints inspect hint."""
+    runs_dir = tmp_path / "runs"
+    # 1. Full run
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--runs-dir",
+            str(runs_dir),
+        )
+        == 0
+    )
+    err = capsys.readouterr().err
+    assert "[tracelens] to inspect failures: tracelens inspect" in err
+    assert f"--eval-set {tasks_file}" in err
+
+    run_subdirs = list(runs_dir.iterdir())
+    assert len(run_subdirs) == 1
+    first_run = run_subdirs[0]
+    assert (first_run / "results.json").exists()
+    assert (first_run / "trials.json").exists()
+    assert (first_run / "report.md").exists()
+    assert (first_run / "report.html").exists()
+
+    first_results = json.loads((first_run / "results.json").read_text())
+    assert len(first_results["task_summaries"]) == 2
+    assert first_results["provenance"]["measurement"]["is_subset"] is False
+
+    # 2. Subset rerun using --runs-dir
+    assert (
+        _run_cli(
+            "run",
+            "--eval-set",
+            str(tasks_file),
+            "--adapter",
+            ADAPTER,
+            "--graders",
+            GRADER,
+            "--runs-dir",
+            str(runs_dir),
+            "--task-id",
+            "t-fail",
+        )
+        == 0
+    )
+    run_subdirs_after = list(runs_dir.iterdir())
+    assert len(run_subdirs_after) == 2
+
+    # The first run remains untouched
+    first_results_after = json.loads((first_run / "results.json").read_text())
+    assert len(first_results_after["task_summaries"]) == 2
+
+    # The subset run directory has 1 task summary and subset provenance
+    second_run = [d for d in run_subdirs_after if d != first_run][0]
+    second_results = json.loads((second_run / "results.json").read_text())
+    assert len(second_results["task_summaries"]) == 1
+    assert second_results["task_summaries"][0]["task_id"] == "t-fail"
+    prov = second_results["provenance"]["measurement"]
+    assert prov["is_subset"] is True
+    assert prov["selected_task_ids"] == ["t-fail"]
+    assert prov["total_eval_set_tasks"] == 2

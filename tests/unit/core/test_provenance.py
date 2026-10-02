@@ -62,8 +62,11 @@ def _task(task_id: str, x: int = 1, **kwargs: Any) -> Task:
 
 def _settings(**overrides: Any) -> RunnerSettings:
     base: dict[str, Any] = {
-        "num_runs": 2, "max_concurrency": 3, "timeout_seconds": 30.0,
-        "max_infra_retries": 1, "infra_exception_types": ["builtins.ConnectionError"],
+        "num_runs": 2,
+        "max_concurrency": 3,
+        "timeout_seconds": 30.0,
+        "max_infra_retries": 1,
+        "infra_exception_types": ["builtins.ConnectionError"],
     }
     base.update(overrides)
     return RunnerSettings(**base)
@@ -158,11 +161,17 @@ class TestIdentities:
 
     def test_runner_settings_from_config(self):
         config = RunnerConfig(
-            num_runs=4, max_concurrency=2, timeout_seconds=12.5, max_infra_retries=3,
+            num_runs=4,
+            max_concurrency=2,
+            timeout_seconds=12.5,
+            max_infra_retries=3,
             infra_exception_types=(ConnectionError, MemoryError),
         )
         assert RunnerSettings.from_config(config) == RunnerSettings(
-            num_runs=4, max_concurrency=2, timeout_seconds=12.5, max_infra_retries=3,
+            num_runs=4,
+            max_concurrency=2,
+            timeout_seconds=12.5,
+            max_infra_retries=3,
             infra_exception_types=["builtins.ConnectionError", "builtins.MemoryError"],
         )
 
@@ -172,14 +181,17 @@ class TestRunProvenance:
         spec = DecisionSpec(model=ModelConfig(provider="p", model_id="m"))
         tasks = [_task("a"), _task("b")]
         prov = _provenance(
-            tasks, graders=[_Grader("g1"), _VersionedGrader("g2")],
-            adapter=_VersionedAdapter(), spec=spec,
+            tasks,
+            graders=[_Grader("g1"), _VersionedGrader("g2")],
+            adapter=_VersionedAdapter(),
+            spec=spec,
         )
         assert prov.schema_version == PROVENANCE_SCHEMA_VERSION
         assert prov.run_id == "run-1" and prov.tracelens_version
         assert prov.measurement.eval_set_name == "suite"
         assert prov.measurement.task_hashes == {
-            "a": task_content_hash(_task("a")), "b": task_content_hash(_task("b")),
+            "a": task_content_hash(_task("a")),
+            "b": task_content_hash(_task("b")),
         }
         assert prov.measurement.eval_set_hash == eval_set_hash(EvalSet(name="s", tasks=tasks))
         assert [g.name for g in prov.measurement.graders] == ["g1", "g2"]
@@ -344,3 +356,37 @@ class TestCompatibility:
     def test_report_round_trips_through_json(self):
         report = check_compatibility(_provenance([_task("a", 1)]), _provenance([_task("a", 2)]))
         assert CompatibilityReport.model_validate(json.loads(report.model_dump_json())) == report
+
+    def test_subset_provenance_summary_lines_and_roundtrip(self):
+        eval_set = EvalSet(
+            name="my_suite",
+            tasks=[_task("t1")],
+            is_subset=True,
+            selected_task_ids=["t1"],
+            total_eval_set_tasks=10,
+        )
+        prov = build_provenance(
+            eval_set=eval_set,
+            adapter=_Adapter(),
+            graders=[_Grader()],
+            settings=_settings(),
+            decision_spec=None,
+            run_id="run-sub",
+            started_at=datetime(2026, 1, 1, tzinfo=UTC),
+            is_subset=eval_set.is_subset,
+            selected_task_ids=eval_set.selected_task_ids,
+            total_eval_set_tasks=eval_set.total_eval_set_tasks,
+        )
+        assert prov.measurement.is_subset is True
+        assert prov.measurement.selected_task_ids == ["t1"]
+        assert prov.measurement.total_eval_set_tasks == 10
+        lines = prov.summary_lines()
+        eval_line = next(line for line in lines if line.startswith("Eval set:"))
+        assert "1 task(s) (subset of 10)" in eval_line
+
+        # Roundtrip through JSON
+        dumped = json.loads(prov.model_dump_json())
+        loaded = RunProvenance.model_validate(dumped)
+        assert loaded.measurement.is_subset is True
+        assert loaded.measurement.selected_task_ids == ["t1"]
+        assert loaded.measurement.total_eval_set_tasks == 10

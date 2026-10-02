@@ -53,6 +53,7 @@ RUN_DEFAULTS: dict[str, Any] = {
     "baselines_file": None,
     "require_baselines": False,
     "fail_on_regression": "moderate",
+    "runs_dir": None,
     "output": None,
     "report": None,
     "html_report": None,
@@ -95,13 +96,16 @@ _FIELDS: tuple[_Field, ...] = (
     _Field(("run", "max_infra_retries"), "max_infra_retries", "int"),
     _Field(("run", "infra_exceptions"), "infra_exceptions", "str_list"),
     _Field(("run", "decision_spec"), "decision_spec", "str", is_path=True),
+    _Field(("run", "outputs", "runs_dir"), "runs_dir", "str", is_path=True),
     _Field(("run", "outputs", "results"), "output", "str", is_path=True),
     _Field(("run", "outputs", "report"), "report", "str", is_path=True),
     _Field(("run", "outputs", "html_report"), "html_report", "str", is_path=True),
     _Field(("run", "outputs", "trials"), "save_trials", "str", is_path=True),
     _Field(("run", "baseline", "enabled"), "baseline_check", "bool"),
     _Field(("run", "baseline", "file"), "baselines_file", "str", is_path=True),
-    _Field(("run", "baseline", "fail_on_regression"), "fail_on_regression", "str", choices=_SEVERITIES),
+    _Field(
+        ("run", "baseline", "fail_on_regression"), "fail_on_regression", "str", choices=_SEVERITIES
+    ),
     _Field(("run", "baseline", "require_baselines"), "require_baselines", "bool"),
     _Field(("run", "baseline", "noise_band"), "noise_band", "number"),
 )
@@ -123,16 +127,12 @@ class ConfigError(ValueError):
 class _StrictLoader(yaml.SafeLoader):
     """SafeLoader that refuses duplicate mapping keys instead of keeping the last."""
 
-    def construct_mapping(
-        self, node: yaml.MappingNode, deep: bool = False
-    ) -> dict[Hashable, Any]:
+    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Hashable, Any]:
         seen: set[Hashable] = set()
         for key_node, _ in node.value:
             key = self.construct_object(key_node, deep=deep)
             if key in seen:
-                raise ConfigError(
-                    f"duplicate key {key!r} at line {key_node.start_mark.line + 1}"
-                )
+                raise ConfigError(f"duplicate key {key!r} at line {key_node.start_mark.line + 1}")
             seen.add(key)
         return super().construct_mapping(node, deep=deep)
 
@@ -168,13 +168,13 @@ def _check_kind(field: _Field, value: Any) -> Any:
         if not isinstance(value, str) or not value.strip():
             raise ConfigError(f"{name} must be a non-empty string, got {value!r}")
         if field.choices and value not in field.choices:
-            raise ConfigError(
-                f"{name} must be one of {', '.join(field.choices)}, got {value!r}"
-            )
+            raise ConfigError(f"{name} must be one of {', '.join(field.choices)}, got {value!r}")
         return value
     if field.kind == "str_list":
-        if not isinstance(value, list) or not value or not all(
-            isinstance(item, str) and item.strip() for item in value
+        if (
+            not isinstance(value, list)
+            or not value
+            or not all(isinstance(item, str) and item.strip() for item in value)
         ):
             raise ConfigError(f"{name} must be a non-empty list of strings, got {value!r}")
         return list(value)
@@ -290,6 +290,16 @@ def resolve_run_settings(
     explicit = explicit_run_options(args)
     for dest in explicit:
         merged[dest] = getattr(args, dest)
+    if "runs_dir" in explicit:
+        for legacy_key in ("output", "report", "html_report", "save_trials"):
+            if legacy_key not in explicit:
+                merged[legacy_key] = None
+    elif any(
+        legacy_key in explicit for legacy_key in ("output", "report", "html_report", "save_trials")
+    ):
+        if "runs_dir" not in explicit:
+            merged["runs_dir"] = None
+
     missing = [
         label
         for label, dest in (
@@ -302,7 +312,8 @@ def resolve_run_settings(
     if missing:
         source = f" or in {config.path}" if config is not None else ""
         raise ConfigError(
-            "missing required setting(s): " + ", ".join(missing)
+            "missing required setting(s): "
+            + ", ".join(missing)
             + f"; pass them on the command line{source}"
         )
     resolved = argparse.Namespace(**merged)

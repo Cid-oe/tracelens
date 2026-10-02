@@ -114,11 +114,13 @@ class TestWeek1E2E:
 
     @pytest.fixture
     def llm_provider(self) -> InMemoryProvider:
-        return InMemoryProvider(responses=[
-            '{"score": 8, "feedback": "Good quality"}',
-            '{"score": 6, "feedback": "Acceptable"}',
-            '{"score": 9, "feedback": "Excellent"}',
-        ])
+        return InMemoryProvider(
+            responses=[
+                '{"score": 8, "feedback": "Good quality"}',
+                '{"score": 6, "feedback": "Acceptable"}',
+                '{"score": 9, "feedback": "Excellent"}',
+            ]
+        )
 
     @pytest.mark.asyncio
     async def test_full_eval_with_policy_graders_and_persistence(
@@ -129,8 +131,8 @@ class TestWeek1E2E:
         # 1. Set up adapter and graders
         adapter = SimpleAdapter(mock_agent)
         graders = [
-            SafetyGrader(),          # GATE
-            LatencyCheckGrader(),    # WARN
+            SafetyGrader(),  # GATE
+            LatencyCheckGrader(),  # WARN
             QualityLLMGrader(llm_provider),  # TRACK (uses InMemoryProvider)
         ]
 
@@ -238,8 +240,8 @@ class TestWeek1E2E:
         composite = CompositeGrader(
             grader_id="combined",
             graders=[
-                (SafetyGrader(), 0.4),           # GATE — will FAIL
-                (LatencyCheckGrader(), 0.3),      # WARN — will pass (0ms)
+                (SafetyGrader(), 0.4),  # GATE — will FAIL
+                (LatencyCheckGrader(), 0.3),  # WARN — will pass (0ms)
                 (QualityLLMGrader(provider), 0.3),  # TRACK — will pass
             ],
         )
@@ -282,7 +284,7 @@ class TestWeek1E2E:
             grader_id="mixed",
             graders=[
                 (LegacyMustPassGrader(), 0.5),  # Legacy MUST_PASS — fails
-                (SafetyGrader(), 0.5),           # New GATE — passes
+                (SafetyGrader(), 0.5),  # New GATE — passes
             ],
         )
 
