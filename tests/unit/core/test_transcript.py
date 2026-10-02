@@ -1,6 +1,5 @@
 """Tests for transcript module."""
 
-
 from tracelens.core.transcript import (
     StepType,
     ToolCall,

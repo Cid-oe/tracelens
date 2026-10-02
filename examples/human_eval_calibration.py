@@ -126,9 +126,7 @@ def main() -> None:
 
     # 3. Reconcile the automated grader against the human grades.
     grader_outcomes = {t.task_id: t.outcomes[0] for t in batch.trials}
-    result = CalibrationAnalyzer(threshold=0.7).analyze(
-        grader_outcomes, human_annotations()
-    )
+    result = CalibrationAnalyzer(threshold=0.7).analyze(grader_outcomes, human_annotations())
 
     print("\ntracelens human-eval calibration")
     print("--------------------------------")

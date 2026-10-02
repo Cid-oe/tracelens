@@ -49,31 +49,37 @@ def sample_transcript(sample_task: Task) -> Transcript:
     )
 
     # Add some steps
-    transcript.add_step(TranscriptStep(
-        step_id="step-1",
-        step_type=StepType.LLM_CALL,
-        content="Analyzing goal...",
-        model="gpt-4",
-        tokens_in=100,
-        tokens_out=50,
-    ))
+    transcript.add_step(
+        TranscriptStep(
+            step_id="step-1",
+            step_type=StepType.LLM_CALL,
+            content="Analyzing goal...",
+            model="gpt-4",
+            tokens_in=100,
+            tokens_out=50,
+        )
+    )
 
-    transcript.add_step(TranscriptStep(
-        step_id="step-2",
-        step_type=StepType.TOOL_CALL,
-        tool_call=ToolCall(
-            tool_name="search",
-            arguments={"query": "python tutorials"},
-            result=["tutorial1", "tutorial2"],
-            duration_ms=150.0,
-        ),
-    ))
+    transcript.add_step(
+        TranscriptStep(
+            step_id="step-2",
+            step_type=StepType.TOOL_CALL,
+            tool_call=ToolCall(
+                tool_name="search",
+                arguments={"query": "python tutorials"},
+                result=["tutorial1", "tutorial2"],
+                duration_ms=150.0,
+            ),
+        )
+    )
 
-    transcript.add_step(TranscriptStep(
-        step_id="step-3",
-        step_type=StepType.AGENT_OUTPUT,
-        content={"phases": ["Learn basics", "Build projects"]},
-    ))
+    transcript.add_step(
+        TranscriptStep(
+            step_id="step-3",
+            step_type=StepType.AGENT_OUTPUT,
+            content={"phases": ["Learn basics", "Build projects"]},
+        )
+    )
 
     transcript.final_output = {
         "phases": [
@@ -106,7 +112,9 @@ def sample_outcome() -> Outcome:
 
 
 @pytest.fixture
-def sample_trial(sample_task: Task, sample_transcript: Transcript, sample_outcome: Outcome) -> Trial:
+def sample_trial(
+    sample_task: Task, sample_transcript: Transcript, sample_outcome: Outcome
+) -> Trial:
     """Create a sample trial for testing."""
     trial = Trial(
         trial_id="test-trial-001",

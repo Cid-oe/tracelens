@@ -26,7 +26,7 @@ def enable_gate_block(config_text: str) -> str:
     for i in range(start + 1, len(lines)):
         if not lines[i].startswith("  #   "):
             break
-        lines[i] = "    " + lines[i][len("  #   "):]
+        lines[i] = "    " + lines[i][len("  #   ") :]
     return "".join(lines)
 
 
@@ -142,7 +142,10 @@ class TestReadmeTemplate:
         assert "tracelens inspect eval/results/trials.json --failures" in text
         assert "from tracelens import BaselineManager, TaskBaseline" in text
         assert "uncomment the `baseline:` block" in text
-        assert "--baseline-check --baselines-file eval/baselines.json --fail-on-regression moderate" in text
+        assert (
+            "--baseline-check --baselines-file eval/baselines.json --fail-on-regression moderate"
+            in text
+        )
         assert "Prove that it blocks" in text
         assert "0 = gate passed, 1 = blocked, 2 = misconfigured or unevaluable" in text
 

@@ -83,9 +83,7 @@ class CIQualityGrader(CodeGrader):
         actual = transcript.final_output.get("answer")
         return {"correct": 1.0 if actual == expected else 0.0}
 
-    def determine_pass(
-        self, metrics: dict[str, float], task: Task
-    ) -> tuple[bool, float]:
+    def determine_pass(self, metrics: dict[str, float], task: Task) -> tuple[bool, float]:
         return metrics["correct"] == 1.0, metrics["correct"]
 ```
 

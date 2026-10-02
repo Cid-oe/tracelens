@@ -57,8 +57,8 @@ async def main() -> None:
             },
             "required": ["result", "disclaimer"],
         },
-        max_tokens=5000,              # Soft budget — WARN.
-        must_include=["AI"],          # The disclaimer mentions "AI" — TRACK.
+        max_tokens=5000,  # Soft budget — WARN.
+        must_include=["AI"],  # The disclaimer mentions "AI" — TRACK.
     )
 
     grader_pairs = contract.to_graders()
@@ -71,13 +71,18 @@ async def main() -> None:
         graders=[(g, 1.0) for g, _ in grader_pairs],
     )
 
-    eval_set = EvalSet(name="planner-contract", tasks=[
-        Task(name="travel plan", input_data={"goal": "Plan a weekend trip"}),
-        Task(name="learning plan", input_data={"goal": "Learn Rust in 30 days"}),
-    ])
+    eval_set = EvalSet(
+        name="planner-contract",
+        tasks=[
+            Task(name="travel plan", input_data={"goal": "Plan a weekend trip"}),
+            Task(name="learning plan", input_data={"goal": "Learn Rust in 30 days"}),
+        ],
+    )
 
     batch = await EvaluationRunner(
-        SimpleAdapter(planner_agent), [composite], RunnerConfig(num_runs=2),
+        SimpleAdapter(planner_agent),
+        [composite],
+        RunnerConfig(num_runs=2),
     ).run(eval_set)
 
     gen = ReportGenerator()

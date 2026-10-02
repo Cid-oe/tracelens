@@ -217,10 +217,7 @@ class ConsistencyAnalyzer:
         Returns:
             Dict mapping "pass^k" to computed value
         """
-        return {
-            f"pass^{k}": pass_to_k_estimator(results_per_task, k)
-            for k in self.k_values
-        }
+        return {f"pass^{k}": pass_to_k_estimator(results_per_task, k) for k in self.k_values}
 
     def analyze_detailed(
         self,
@@ -232,10 +229,7 @@ class ConsistencyAnalyzer:
             Dict mapping "pass^k" to a :class:`MetricValue`; ``value`` is
             ``None`` where no task supports that ``k``.
         """
-        return {
-            f"pass^{k}": pass_to_k_metric(results_per_task, k)
-            for k in self.k_values
-        }
+        return {f"pass^{k}": pass_to_k_metric(results_per_task, k) for k in self.k_values}
 
     def compute_reliability_score(
         self,
@@ -287,9 +281,7 @@ class ConsistencyAnalyzer:
         metrics["reliability_score"] = self.compute_reliability_score(results_per_task)
 
         # Failure rate over observed runs only.
-        observed = [
-            r for results in results_per_task.values() for r in results if r is not None
-        ]
+        observed = [r for results in results_per_task.values() for r in results if r is not None]
         if observed:
             metrics["failure_rate"] = 1.0 - (sum(observed) / len(observed))
         else:

@@ -43,10 +43,15 @@ def _trial(
     if passed is not None:
         if score is None:
             score = 1.0 if passed else 0.0
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id, grader_id="g", passed=passed,
-            score=score, grader_error=grader_error,
-        ))
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id="g",
+                passed=passed,
+                score=score,
+                grader_error=grader_error,
+            )
+        )
     if spec is not None:
         trial.transcript = Transcript(task_id=task_id, final_output={}, decision_spec=spec)
     return trial
@@ -180,9 +185,7 @@ class TestEvaluateGate:
         baseline.decision_spec = DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=2048))
         manager.set_baseline(baseline)
         current = DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=512))
-        gate = evaluate_gate(
-            _batch(*_runs("t1", [True, True, True], spec=current)), manager
-        )
+        gate = evaluate_gate(_batch(*_runs("t1", [True, True, True], spec=current)), manager)
         task = gate.tasks[0]
         assert task.infra_config_mismatch
         assert task.infra_config_diff["memory_hard_limit_mb"] == (2048, 512)
@@ -214,7 +217,11 @@ class TestGateResultModel:
         baseline.decision_spec = DecisionSpec(infra=InfraConfig(cpu_hard_limit=2.0))
         manager.set_baseline(baseline)
         batch = _batch(
-            *_runs("t1", [False, False, False], spec=DecisionSpec(infra=InfraConfig(cpu_hard_limit=1.0))),
+            *_runs(
+                "t1",
+                [False, False, False],
+                spec=DecisionSpec(infra=InfraConfig(cpu_hard_limit=1.0)),
+            ),
             *_runs("t2", [True, True]),
             *_runs("t3", [True]),
         )
@@ -240,8 +247,12 @@ class TestHelpers:
         assert [r["pass_rate"] for r in results] == [1.0, 0.0]  # pass, timeout-as-failure
 
     def test_spec_from_trials_prefers_latest_and_reports_mix(self):
-        old = _trial("t", True, run_index=0, spec=DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=2048)))
-        new = _trial("t", True, run_index=1, spec=DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=512)))
+        old = _trial(
+            "t", True, run_index=0, spec=DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=2048))
+        )
+        new = _trial(
+            "t", True, run_index=1, spec=DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=512))
+        )
         spec, warning = spec_from_trials([old, new])
         assert spec is not None and spec.infra is not None
         assert spec.infra.memory_hard_limit_mb == 512
@@ -300,10 +311,7 @@ class TestTaskContentIdentity:
             "(aaaaaaaaaaaa -> bbbbbbbbbbbb); re-store the baseline for this task"
         )
         assert gate.skipped_task_content_changed == 1 and gate.checked == 0
-        assert (
-            "1 task(s) whose content changed since their baseline was stored: t1"
-            in gate.reasons
-        )
+        assert "1 task(s) whose content changed since their baseline was stored: t1" in gate.reasons
         assert "1 skipped (task content changed)" in gate.summary_line()
 
     def test_matching_content_is_compared_normally(self, tmp_path):
@@ -425,9 +433,7 @@ class TestRunLevelPolicy:
         assert reg.p_value_adjusted == pytest.approx(0.0215, abs=5e-4)  # 2 * p, under 0.05
         assert gate.tasks[1].regressions == []
 
-    def test_suite_level_criterion_reports_a_broad_regression_without_blocking(
-        self, tmp_path
-    ):
+    def test_suite_level_criterion_reports_a_broad_regression_without_blocking(self, tmp_path):
         # Twenty tasks each slip from 5/5 to 4/5: no task can show it
         # (p=0.29 each), the suite statistic can (every difference is
         # negative). It is reported, but blocking on it is off by default:
@@ -470,9 +476,7 @@ class TestRunLevelPolicy:
         # Both criteria live: each is held to half the run's budget.
         assert "split with the suite criterion" in gate.policy_text()
 
-    def test_correlated_tasks_make_the_suite_statistic_overstate_its_evidence(
-        self, tmp_path
-    ):
+    def test_correlated_tasks_make_the_suite_statistic_overstate_its_evidence(self, tmp_path):
         # Why suite-level blocking is off by default. The sign-flip test
         # treats each task's difference as an independent draw. Ten tasks
         # that share one run-level outcome carry one task's worth of
@@ -489,9 +493,7 @@ class TestRunLevelPolicy:
         assert effect.p_value is not None and effect.p_value < 0.002
         # One task on its own is no evidence at all, and the ten carry the
         # same information: nothing here justifies blocking the run.
-        alone = evaluate_gate(
-            _batch(*_runs(ids[0], shared)), manager, task_ids=[ids[0]]
-        )
+        alone = evaluate_gate(_batch(*_runs(ids[0], shared)), manager, task_ids=[ids[0]])
         assert alone.suite == []  # one task cannot form the statistic
         assert gate.status is GateStatus.PASSED and effect.blocking is False
 
@@ -519,9 +521,7 @@ class TestRunLevelPolicy:
         # per-task family half the level would halve the run's sensitivity
         # for a criterion that never runs.
         manager = _manager_n(tmp_path, {"a": 1.0}, sample_size=5)
-        alone = evaluate_gate(
-            _batch(*_runs("a", _passes(2, 5))), manager, suite_blocking=True
-        )
+        alone = evaluate_gate(_batch(*_runs("a", _passes(2, 5))), manager, suite_blocking=True)
         assert alone.suite == [] and alone.suite_blocking is False
         assert alone.policy_text() == (
             "alpha=0.05, Holm-adjusted across 1 compared (task, metric) test(s)"
@@ -531,7 +531,8 @@ class TestRunLevelPolicy:
         manager2 = _manager_n(tmp_path, {"a": 1.0, "b": 1.0}, sample_size=5)
         both = evaluate_gate(
             _batch(*_runs("a", _passes(2, 5)), *_runs("b", _passes(2, 5))),
-            manager2, suite_blocking=True,
+            manager2,
+            suite_blocking=True,
         )
         assert both.suite and both.suite_blocking is True
         assert "0.025 for the per-task family" in both.policy_text()
@@ -617,10 +618,13 @@ class TestRunLevelPolicy:
             baseline.add_metric("mean_score", 0.9, std=0.0, sample_size=1)
             manager.set_baseline(baseline)
         manager.save()
-        batch = _batch(*[
-            _trial(task_id, True, run_index=i, score=0.5)
-            for task_id in ("a", "b") for i in range(3)
-        ])
+        batch = _batch(
+            *[
+                _trial(task_id, True, run_index=i, score=0.5)
+                for task_id in ("a", "b")
+                for i in range(3)
+            ]
+        )
 
         gate = evaluate_gate(batch, manager)
         assert gate.status is GateStatus.UNEVALUABLE
@@ -658,10 +662,13 @@ class TestRunLevelPolicy:
             baseline.add_metric("mean_score", 0.9, std=0.0, sample_size=3)
             manager.set_baseline(baseline)
         manager.save()
-        batch = _batch(*[
-            _trial(task_id, True, run_index=i, score=0.9)
-            for task_id in ("a", "b") for i in range(3)
-        ])
+        batch = _batch(
+            *[
+                _trial(task_id, True, run_index=i, score=0.9)
+                for task_id in ("a", "b")
+                for i in range(3)
+            ]
+        )
 
         holm = evaluate_gate(batch, manager)
         assert holm.status is GateStatus.UNEVALUABLE and holm.family_size == 2
@@ -680,10 +687,13 @@ class TestRunLevelPolicy:
         # three compared (task, metric) pairs, one family, one budget.
         # Giving each metric its own family would hand a suite that stores
         # two near-duplicate metrics two independent chances to block.
-        manager = _manager(tmp_path, {
-            "a": {"pass_rate": 1.0, "mean_score": 1.0},
-            "b": {"pass_rate": 1.0},
-        })
+        manager = _manager(
+            tmp_path,
+            {
+                "a": {"pass_rate": 1.0, "mean_score": 1.0},
+                "b": {"pass_rate": 1.0},
+            },
+        )
         batch = _batch(*_runs("a", _passes(2, 5)), *_runs("b", _passes(5, 5)))
 
         gate = evaluate_gate(batch, manager)
@@ -713,6 +723,7 @@ class TestRunLevelPolicy:
         assert gate.summary_line().endswith(
             "0 blocking regression(s), 2 observed drop(s) not significant"
         )
+
     def test_policy_arguments_are_validated(self, tmp_path):
         manager = _manager(tmp_path, {"t1": {"pass_rate": 1.0}})
         batch = _batch(*_runs("t1", [True, True]))
@@ -732,16 +743,36 @@ class TestRunLevelPolicy:
         assert [s.describe() for s in restored.suite] == [s.describe() for s in gate.suite]
         assert restored.suite[0].seed == 7
         assert restored.tasks[0].compared_metrics == ["pass_rate"]
-        assert restored.tasks[0].regressions[0].trials_needed == gate.tasks[0].regressions[0].trials_needed
+        assert (
+            restored.tasks[0].regressions[0].trials_needed
+            == gate.tasks[0].regressions[0].trials_needed
+        )
 
     def test_legacy_gate_json_without_the_policy_still_loads(self):
         legacy = {
-            "status": "passed", "exit_code": 0, "threshold": "moderate", "checked": 1,
-            "tasks": [{"task_id": "t1", "outcome": "checked", "regressions": [{
-                "metric_name": "pass_rate", "baseline_mean": 1.0, "current_mean": 0.0,
-                "delta": -1.0, "delta_percent": -100.0, "p_value": None,
-                "is_significant": False, "insufficient_data": True, "severity": "severe",
-            }]}],
+            "status": "passed",
+            "exit_code": 0,
+            "threshold": "moderate",
+            "checked": 1,
+            "tasks": [
+                {
+                    "task_id": "t1",
+                    "outcome": "checked",
+                    "regressions": [
+                        {
+                            "metric_name": "pass_rate",
+                            "baseline_mean": 1.0,
+                            "current_mean": 0.0,
+                            "delta": -1.0,
+                            "delta_percent": -100.0,
+                            "p_value": None,
+                            "is_significant": False,
+                            "insufficient_data": True,
+                            "severity": "severe",
+                        }
+                    ],
+                }
+            ],
         }
         gate = GateResult.from_dict(legacy)
         assert gate.alpha is None and gate.multiplicity is None and gate.suite == []
@@ -760,8 +791,16 @@ class TestGateErrorRates:
     """
 
     @staticmethod
-    def _simulate(rng, *, tasks: int, flaky: int, n: int, p_flaky: float, regressed: float | None,
-                  tmp_path: Path) -> GateStatus:
+    def _simulate(
+        rng,
+        *,
+        tasks: int,
+        flaky: int,
+        n: int,
+        p_flaky: float,
+        regressed: float | None,
+        tmp_path: Path,
+    ) -> GateStatus:
         manager = BaselineManager(tmp_path / "baselines.json")
         trials = []
         for index in range(tasks):
@@ -786,8 +825,16 @@ class TestGateErrorRates:
 
         rng = np.random.default_rng(111)
         blocked = sum(
-            self._simulate(rng, tasks=50, flaky=10, n=5, p_flaky=0.8, regressed=None,
-                           tmp_path=tmp_path / str(i)) is GateStatus.BLOCKED
+            self._simulate(
+                rng,
+                tasks=50,
+                flaky=10,
+                n=5,
+                p_flaky=0.8,
+                regressed=None,
+                tmp_path=tmp_path / str(i),
+            )
+            is GateStatus.BLOCKED
             for i in range(40)
         )
         assert blocked <= 2  # expected ~0.1% per run under Holm; 5% would be 2 of 40
@@ -798,8 +845,10 @@ class TestGateErrorRates:
         rng = np.random.default_rng(222)
         # Single-task suite at n=5: the contract states 68 % power for 1.0 -> 0.4.
         caught = sum(
-            self._simulate(rng, tasks=1, flaky=0, n=5, p_flaky=0.8, regressed=0.4,
-                           tmp_path=tmp_path / str(i)) is GateStatus.BLOCKED
+            self._simulate(
+                rng, tasks=1, flaky=0, n=5, p_flaky=0.8, regressed=0.4, tmp_path=tmp_path / str(i)
+            )
+            is GateStatus.BLOCKED
             for i in range(60)
         )
         assert 25 <= caught <= 55  # 68 % +/- generous binomial slack over 60 runs
@@ -823,9 +872,7 @@ class TestTheSuiteCriterionCannotRescueWhatItCannotReject:
             baseline.add_metric("mean_score", 1.0, std=0.0, sample_size=trials)
             manager.set_baseline(baseline)
         manager.save()
-        batch = _batch(*[
-            t for i in range(tasks) for t in _runs(f"t{i}", [False] * trials)
-        ])
+        batch = _batch(*[t for i in range(tasks) for t in _runs(f"t{i}", [False] * trials)])
         return batch, manager
 
     def test_a_total_collapse_is_never_reported_as_passing(self, tmp_path: Path) -> None:
@@ -838,9 +885,7 @@ class TestTheSuiteCriterionCannotRescueWhatItCannotReject:
         assert EXIT_CODES[result.status] == 2
         assert result.status is not GateStatus.PASSED
 
-    def test_the_same_collapse_blocks_under_the_default_policy(
-        self, tmp_path: Path
-    ) -> None:
+    def test_the_same_collapse_blocks_under_the_default_policy(self, tmp_path: Path) -> None:
         # Without the split the whole budget goes to the per-task family,
         # which can decide it; the collapse blocks rather than going quiet.
         batch, manager = self._collapse(tmp_path)
@@ -848,14 +893,12 @@ class TestTheSuiteCriterionCannotRescueWhatItCannotReject:
         assert result.status is GateStatus.BLOCKED
         assert EXIT_CODES[result.status] == 1
 
-    def test_the_bound_counts_every_criterion_sharing_the_budget(
-        self, tmp_path: Path
-    ) -> None:
+    def test_the_bound_counts_every_criterion_sharing_the_budget(self, tmp_path: Path) -> None:
         # Six tasks put the raw floor at 2**-6 = 0.015625, under the 0.025
         # the split leaves. Holm across the two stored metrics doubles the
         # best attainable value to 0.03125, which is over it.
         batch, manager = self._collapse(tmp_path)
         result = evaluate_gate(batch, manager, suite_blocking=True)
         assert len(result.suite) == 2  # pass_rate and mean_score
-        assert all(2.0 ** -s.tasks <= 0.025 for s in result.suite)
-        assert all(len(result.suite) * 2.0 ** -s.tasks > 0.025 for s in result.suite)
+        assert all(2.0**-s.tasks <= 0.025 for s in result.suite)
+        assert all(len(result.suite) * 2.0**-s.tasks > 0.025 for s in result.suite)

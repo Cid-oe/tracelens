@@ -80,15 +80,17 @@ class TestTranscriptSerialization:
         """Step types (enums) are preserved through serialization."""
         t = Transcript(task_id="task-1")
         t.add_step(TranscriptStep(step_type=StepType.LLM_CALL, content="hello"))
-        t.add_step(TranscriptStep(
-            step_type=StepType.TOOL_CALL,
-            tool_call=ToolCall(
-                tool_name="search",
-                arguments={"q": "test"},
-                result=["result1"],
-                duration_ms=100.0,
-            ),
-        ))
+        t.add_step(
+            TranscriptStep(
+                step_type=StepType.TOOL_CALL,
+                tool_call=ToolCall(
+                    tool_name="search",
+                    arguments={"q": "test"},
+                    result=["result1"],
+                    duration_ms=100.0,
+                ),
+            )
+        )
         t.add_step(TranscriptStep(step_type=StepType.ERROR, error="boom"))
 
         data = t.to_dict()
@@ -101,9 +103,7 @@ class TestTranscriptSerialization:
         assert restored.steps[2].step_type == StepType.ERROR
         assert restored.steps[2].error == "boom"
 
-    def test_transcript_to_dict_is_json_serializable(
-        self, sample_transcript: Transcript
-    ) -> None:
+    def test_transcript_to_dict_is_json_serializable(self, sample_transcript: Transcript) -> None:
         """to_dict() output can be passed to json.dumps without errors."""
         data = sample_transcript.to_dict()
         json_str = json.dumps(data, default=str)
@@ -163,12 +163,14 @@ class TestTrialBatchSerialization:
                 total_runs=3,
                 status=TrialStatus.COMPLETED,
             )
-            trial.add_outcome(Outcome(
-                trial_id=trial.trial_id,
-                grader_id="g1",
-                passed=i % 2 == 0,
-                score=0.5 + i * 0.1,
-            ))
+            trial.add_outcome(
+                Outcome(
+                    trial_id=trial.trial_id,
+                    grader_id="g1",
+                    passed=i % 2 == 0,
+                    score=0.5 + i * 0.1,
+                )
+            )
             trials.append(trial)
 
         batch = TrialBatch(
@@ -197,12 +199,14 @@ class TestTrialBatchSerialization:
             started_at=datetime.now(UTC),
             completed_at=datetime.now(UTC),
         )
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id,
-            grader_id="g1",
-            passed=True,
-            score=0.9,
-        ))
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id="g1",
+                passed=True,
+                score=0.9,
+            )
+        )
         batch = TrialBatch(
             trials=[trial],
             started_at=datetime.now(UTC),
@@ -233,9 +237,7 @@ class TestTrialBatchSerialization:
         assert restored.trials[0].error_message == "Connection refused"
         assert restored.trials[0].error_traceback == "Traceback..."
 
-    def test_batch_with_transcript_roundtrip(
-        self, sample_trial: Trial
-    ) -> None:
+    def test_batch_with_transcript_roundtrip(self, sample_trial: Trial) -> None:
         """Batch with full transcript data survives round-trip."""
         batch = TrialBatch(trials=[sample_trial])
         data = batch.to_dict()
