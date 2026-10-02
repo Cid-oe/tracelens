@@ -95,9 +95,7 @@ def test_retries_transient_call_failures() -> None:
 
 def test_no_retry_when_disabled() -> None:
     provider = _FlakyProvider(failures=1)
-    grader = _JSONGrader(
-        "g", provider=provider, config=_config(retry_on_error=False)
-    )
+    grader = _JSONGrader("g", provider=provider, config=_config(retry_on_error=False))
 
     with pytest.raises(ConnectionError):
         asyncio.run(grader.grade(_transcript(), _task()))

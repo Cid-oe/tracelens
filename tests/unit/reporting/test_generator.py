@@ -29,12 +29,14 @@ def _make_batch(task_configs: dict[str, list[tuple[bool, float]]]) -> TrialBatch
                 total_runs=len(runs),
                 status=TrialStatus.COMPLETED,
             )
-            trial.add_outcome(Outcome(
-                trial_id=trial.trial_id,
-                grader_id="test_grader",
-                passed=passed,
-                score=score,
-            ))
+            trial.add_outcome(
+                Outcome(
+                    trial_id=trial.trial_id,
+                    grader_id="test_grader",
+                    passed=passed,
+                    score=score,
+                )
+            )
             batch.add_trial(trial)
     return batch
 
@@ -47,8 +49,11 @@ def _md_row_cells(row: str) -> list[str]:
 class TestTaskSummary:
     def test_to_dict(self):
         s = TaskSummary(
-            task_id="t1", num_trials=5, pass_rate=0.8,
-            mean_score=0.75, std_score=0.1,
+            task_id="t1",
+            num_trials=5,
+            pass_rate=0.8,
+            mean_score=0.75,
+            std_score=0.1,
         )
         d = s.to_dict()
         assert d["task_id"] == "t1"
@@ -64,8 +69,11 @@ class TestReportData:
             overall_mean_score=0.65,
             task_summaries=[
                 TaskSummary(
-                    task_id="t1", num_trials=5, pass_rate=0.8,
-                    mean_score=0.75, std_score=0.1,
+                    task_id="t1",
+                    num_trials=5,
+                    pass_rate=0.8,
+                    mean_score=0.75,
+                    std_score=0.1,
                 ),
             ],
             pass_at_k={"pass@1": 0.7, "pass@3": 0.9},
@@ -90,10 +98,12 @@ class TestReportData:
 class TestReportGenerator:
     def test_build_report_basic(self):
         """Report contains correct suite-level stats."""
-        batch = _make_batch({
-            "t1": [(True, 0.9), (True, 0.8), (False, 0.3)],
-            "t2": [(True, 0.7), (True, 0.6)],
-        })
+        batch = _make_batch(
+            {
+                "t1": [(True, 0.9), (True, 0.8), (False, 0.3)],
+                "t2": [(True, 0.7), (True, 0.6)],
+            }
+        )
 
         gen = ReportGenerator()
         report = gen.build_report(batch)
@@ -105,9 +115,11 @@ class TestReportGenerator:
 
     def test_build_report_per_task(self):
         """Per-task summaries are computed correctly."""
-        batch = _make_batch({
-            "t1": [(True, 0.9), (False, 0.4)],
-        })
+        batch = _make_batch(
+            {
+                "t1": [(True, 0.9), (False, 0.4)],
+            }
+        )
 
         gen = ReportGenerator()
         report = gen.build_report(batch)
@@ -120,9 +132,11 @@ class TestReportGenerator:
 
     def test_build_report_pass_at_k(self):
         """Suite-level pass@k is computed."""
-        batch = _make_batch({
-            "t1": [(True, 0.9), (True, 0.8), (True, 0.7)],
-        })
+        batch = _make_batch(
+            {
+                "t1": [(True, 0.9), (True, 0.8), (True, 0.7)],
+            }
+        )
 
         gen = ReportGenerator(k_values=[1, 3])
         report = gen.build_report(batch)
@@ -133,9 +147,11 @@ class TestReportGenerator:
 
     def test_render_markdown(self):
         """Markdown report contains expected sections."""
-        batch = _make_batch({
-            "t1": [(True, 0.9), (False, 0.4)],
-        })
+        batch = _make_batch(
+            {
+                "t1": [(True, 0.9), (False, 0.4)],
+            }
+        )
 
         gen = ReportGenerator()
         report = gen.build_report(batch)
@@ -148,9 +164,11 @@ class TestReportGenerator:
 
     def test_render_ci_summary(self):
         """CI summary is a compact single line."""
-        batch = _make_batch({
-            "t1": [(True, 0.9)],
-        })
+        batch = _make_batch(
+            {
+                "t1": [(True, 0.9)],
+            }
+        )
 
         gen = ReportGenerator()
         report = gen.build_report(batch)
@@ -171,10 +189,12 @@ class TestReportGenerator:
 
     def test_render_html_basic(self):
         """HTML report is a valid self-contained document."""
-        batch = _make_batch({
-            "t1": [(True, 0.9), (True, 0.8), (False, 0.3)],
-            "t2": [(True, 0.7), (True, 0.6)],
-        })
+        batch = _make_batch(
+            {
+                "t1": [(True, 0.9), (True, 0.8), (False, 0.3)],
+                "t2": [(True, 0.7), (True, 0.6)],
+            }
+        )
 
         gen = ReportGenerator()
         report = gen.build_report(batch)
@@ -186,9 +206,11 @@ class TestReportGenerator:
 
     def test_render_html_contains_summary_cards(self):
         """HTML report has summary cards with correct values."""
-        batch = _make_batch({
-            "t1": [(True, 0.9), (False, 0.4)],
-        })
+        batch = _make_batch(
+            {
+                "t1": [(True, 0.9), (False, 0.4)],
+            }
+        )
 
         gen = ReportGenerator()
         report = gen.build_report(batch)
@@ -201,10 +223,12 @@ class TestReportGenerator:
 
     def test_render_html_contains_task_table(self):
         """HTML report has per-task results table."""
-        batch = _make_batch({
-            "task-alpha": [(True, 0.9)],
-            "task-beta": [(False, 0.3)],
-        })
+        batch = _make_batch(
+            {
+                "task-alpha": [(True, 0.9)],
+                "task-beta": [(False, 0.3)],
+            }
+        )
 
         gen = ReportGenerator()
         report = gen.build_report(batch)
@@ -216,9 +240,11 @@ class TestReportGenerator:
 
     def test_render_html_contains_svg_charts(self):
         """HTML report contains SVG chart elements."""
-        batch = _make_batch({
-            "t1": [(True, 0.9), (True, 0.8), (False, 0.3)],
-        })
+        batch = _make_batch(
+            {
+                "t1": [(True, 0.9), (True, 0.8), (False, 0.3)],
+            }
+        )
 
         gen = ReportGenerator(k_values=[1, 3])
         report = gen.build_report(batch)
@@ -238,9 +264,11 @@ class TestReportGenerator:
 
     def test_render_html_escapes_task_ids(self):
         """HTML report escapes special characters in task IDs."""
-        batch = _make_batch({
-            "task<script>": [(True, 0.9)],
-        })
+        batch = _make_batch(
+            {
+                "task<script>": [(True, 0.9)],
+            }
+        )
 
         gen = ReportGenerator()
         report = gen.build_report(batch)
@@ -251,13 +279,15 @@ class TestReportGenerator:
 
     def test_render_markdown_escapes_hostile_task_ids(self):
         """Issue #134: hostile task ids cannot break the per-task table."""
-        batch = _make_batch({
-            "pipe|id<script-like content>": [(True, 1.0)],
-            "<script>alert(1)</script>": [(True, 1.0)],
-            "amp&and": [(True, 1.0)],
-            "line1\nline2": [(True, 1.0)],
-            "t1": [(True, 1.0)],
-        })
+        batch = _make_batch(
+            {
+                "pipe|id<script-like content>": [(True, 1.0)],
+                "<script>alert(1)</script>": [(True, 1.0)],
+                "amp&and": [(True, 1.0)],
+                "line1\nline2": [(True, 1.0)],
+                "t1": [(True, 1.0)],
+            }
+        )
 
         gen = ReportGenerator()
         report = gen.build_report(batch)
@@ -275,7 +305,10 @@ class TestReportGenerator:
             cells_by_task[cells[0]] = cells
 
         assert cells_by_task["pipe\\|id&lt;script-like content&gt;"] == [
-            "pipe\\|id&lt;script-like content&gt;", "1", "100.0%", "1.0000",
+            "pipe\\|id&lt;script-like content&gt;",
+            "1",
+            "100.0%",
+            "1.0000",
         ]
         assert "&lt;script&gt;alert(1)&lt;/script&gt;" in cells_by_task
         assert cells_by_task["amp&amp;and"][0] == "amp&amp;and"
@@ -338,15 +371,26 @@ class TestInfraErrorReporting:
     def _batch_with_infra_errors(self):
         from tracelens.core.outcome import Outcome
         from tracelens.core.trial import Trial, TrialBatch, TrialStatus
+
         # Distinct run indices per task: duplicates are rejected (#45).
         trials = [
-            Trial(task_id="t1", run_index=0, status=TrialStatus.COMPLETED, outcomes=[
-                Outcome(trial_id="x", grader_id="g", passed=True, score=1.0),
-            ]),
+            Trial(
+                task_id="t1",
+                run_index=0,
+                status=TrialStatus.COMPLETED,
+                outcomes=[
+                    Outcome(trial_id="x", grader_id="g", passed=True, score=1.0),
+                ],
+            ),
             Trial(task_id="t1", run_index=1, status=TrialStatus.INFRA_ERROR),
-            Trial(task_id="t2", run_index=0, status=TrialStatus.COMPLETED, outcomes=[
-                Outcome(trial_id="y", grader_id="g", passed=False, score=0.1),
-            ]),
+            Trial(
+                task_id="t2",
+                run_index=0,
+                status=TrialStatus.COMPLETED,
+                outcomes=[
+                    Outcome(trial_id="y", grader_id="g", passed=False, score=0.1),
+                ],
+            ),
             Trial(task_id="t2", run_index=1, status=TrialStatus.INFRA_ERROR),
         ]
         return TrialBatch(trials=trials)
@@ -377,11 +421,17 @@ class TestInfraErrorReporting:
         from tracelens.core.trial import Trial, TrialBatch, TrialStatus
         from tracelens.reporting.generator import ReportGenerator
 
-        clean_batch = TrialBatch(trials=[
-            Trial(task_id="t1", status=TrialStatus.COMPLETED, outcomes=[
-                Outcome(trial_id="x", grader_id="g", passed=True, score=1.0),
-            ]),
-        ])
+        clean_batch = TrialBatch(
+            trials=[
+                Trial(
+                    task_id="t1",
+                    status=TrialStatus.COMPLETED,
+                    outcomes=[
+                        Outcome(trial_id="x", grader_id="g", passed=True, score=1.0),
+                    ],
+                ),
+            ]
+        )
         gen = ReportGenerator()
         md = gen.render_markdown(gen.build_report(clean_batch))
         assert "Infra-Error Rate" not in md
@@ -417,12 +467,14 @@ class TestReportRunOrderIndependence:
             trial = Trial(
                 task_id="t", run_index=run_index, total_runs=4, status=TrialStatus.COMPLETED
             )
-            trial.add_outcome(Outcome(
-                trial_id=trial.trial_id,
-                grader_id="g",
-                passed=outcomes[run_index],
-                score=1.0 if outcomes[run_index] else 0.0,
-            ))
+            trial.add_outcome(
+                Outcome(
+                    trial_id=trial.trial_id,
+                    grader_id="g",
+                    passed=outcomes[run_index],
+                    score=1.0 if outcomes[run_index] else 0.0,
+                )
+            )
             batch.add_trial(trial)
         return batch
 
@@ -442,9 +494,9 @@ class TestReportRunOrderIndependence:
         batch = TrialBatch()
         for run_index, passed in [(0, True), (2, True)]:  # run 1 missing
             trial = Trial(task_id="t", run_index=run_index, status=TrialStatus.COMPLETED)
-            trial.add_outcome(Outcome(
-                trial_id=trial.trial_id, grader_id="g", passed=passed, score=1.0
-            ))
+            trial.add_outcome(
+                Outcome(trial_id=trial.trial_id, grader_id="g", passed=passed, score=1.0)
+            )
             batch.add_trial(trial)
         report = ReportGenerator(k_values=[1], consistency_k_values=[2]).build_report(batch)
         # No complete window of 2: the task is ineligible, so suite pass^2 is
@@ -520,15 +572,23 @@ class TestMetricAvailabilityReporting:
 
     def test_legacy_report_loads_with_explicit_assumption(self):
         legacy = {
-            "total_trials": 2, "total_tasks": 2,
-            "overall_pass_rate": 1.0, "overall_mean_score": 1.0,
+            "total_trials": 2,
+            "total_tasks": 2,
+            "overall_pass_rate": 1.0,
+            "overall_mean_score": 1.0,
             "pass_at_k": {"pass@1": 1.0, "pass@5": 1.0},
             "reliability": {"pass^2": 0.0},
-            "task_summaries": [{
-                "task_id": "t1", "num_trials": 1, "pass_rate": 1.0,
-                "mean_score": 1.0, "std_score": 0.0,
-                "pass_at_k": {"pass@1": 1.0}, "reliability": {"pass^2": 0.0},
-            }],
+            "task_summaries": [
+                {
+                    "task_id": "t1",
+                    "num_trials": 1,
+                    "pass_rate": 1.0,
+                    "mean_score": 1.0,
+                    "std_score": 0.0,
+                    "pass_at_k": {"pass@1": 1.0},
+                    "reliability": {"pass^2": 0.0},
+                }
+            ],
         }
         report = ReportData.from_dict(legacy)
         assert report.availability_recorded is False
@@ -550,19 +610,26 @@ class TestMetricAvailabilityReporting:
         def trial(task_id, run_index, status, passed=None, grader_error=False):
             t = Trial(task_id=task_id, run_index=run_index, status=status)
             if passed is not None:
-                t.add_outcome(Outcome(
-                    trial_id=t.trial_id, grader_id="g", passed=passed,
-                    score=1.0 if passed else 0.0, grader_error=grader_error,
-                ))
+                t.add_outcome(
+                    Outcome(
+                        trial_id=t.trial_id,
+                        grader_id="g",
+                        passed=passed,
+                        score=1.0 if passed else 0.0,
+                        grader_error=grader_error,
+                    )
+                )
             return t
 
-        return TrialBatch(trials=[
-            trial("t1", 0, TrialStatus.COMPLETED, passed=True),
-            trial("t1", 1, TrialStatus.INFRA_ERROR),
-            trial("t2", 0, TrialStatus.COMPLETED, passed=False),
-            trial("t2", 1, TrialStatus.COMPLETED, passed=False, grader_error=True),
-            trial("t3", 0, TrialStatus.SKIPPED),
-        ])
+        return TrialBatch(
+            trials=[
+                trial("t1", 0, TrialStatus.COMPLETED, passed=True),
+                trial("t1", 1, TrialStatus.INFRA_ERROR),
+                trial("t2", 0, TrialStatus.COMPLETED, passed=False),
+                trial("t2", 1, TrialStatus.COMPLETED, passed=False, grader_error=True),
+                trial("t3", 0, TrialStatus.SKIPPED),
+            ]
+        )
 
     def test_harness_failures_are_excluded_and_counted(self):
         gen = ReportGenerator(k_values=[1], consistency_k_values=[2])
@@ -585,15 +652,19 @@ class TestMetricAvailabilityReporting:
         assert "| t3 | 1 (0 gradable) | N/A |" in md
 
     def test_no_gradable_trials_renders_na_pass_rate(self):
-        batch = TrialBatch(trials=[
-            Trial(task_id="t1", run_index=0, status=TrialStatus.INFRA_ERROR),
-            Trial(task_id="t1", run_index=1, status=TrialStatus.INFRA_ERROR),
-        ])
+        batch = TrialBatch(
+            trials=[
+                Trial(task_id="t1", run_index=0, status=TrialStatus.INFRA_ERROR),
+                Trial(task_id="t1", run_index=1, status=TrialStatus.INFRA_ERROR),
+            ]
+        )
         gen = ReportGenerator(k_values=[1], consistency_k_values=[2])
         report = gen.build_report(batch)
         assert report.gradable_trials == 0
         assert report.pass_at_k["pass@1"] is None
-        assert report.metric_availability["pass@1"].reason == "needs at least 1 gradable runs per task"
+        assert (
+            report.metric_availability["pass@1"].reason == "needs at least 1 gradable runs per task"
+        )
         assert "**Pass Rate**: N/A (no gradable trials)" in gen.render_markdown(report)
         assert "pass_rate=n/a" in gen.render_ci_summary(report)
         assert ">N/A<" in gen.render_html(report)
@@ -612,10 +683,12 @@ class TestGateReporting:
         baseline.add_metric("pass_rate", 1.0, std=0.05, sample_size=10)
         manager.set_baseline(baseline)
         manager.save()
-        batch = _make_batch({
-            "t1": [(passing, 1.0 if passing else 0.0)] * 3,
-            "t2": [(True, 1.0)] * 3,  # no baseline stored
-        })
+        batch = _make_batch(
+            {
+                "t1": [(passing, 1.0 if passing else 0.0)] * 3,
+                "t2": [(True, 1.0)] * 3,  # no baseline stored
+            }
+        )
         gen = ReportGenerator(k_values=[1], consistency_k_values=[2])
         report = gen.build_report(batch)
         report.gate = evaluate_gate(
@@ -637,7 +710,10 @@ class TestGateReporting:
 
         ci = gen.render_ci_summary(report)
         assert "REGRESSION DETECTED [SEVERE]" in ci
-        assert "[tracelens] Baseline check: 1 checked, 1 skipped (no baseline), 1 blocking regression(s)" in ci
+        assert (
+            "[tracelens] Baseline check: 1 checked, 1 skipped (no baseline), 1 blocking regression(s)"
+            in ci
+        )
 
         html = gen.render_html(report)
         assert "Baseline Gate" in html and ">BLOCKED<" in html
@@ -663,7 +739,8 @@ class TestGateReporting:
         md = gen.render_markdown(report)
         rows = [line for line in md.splitlines() if line.startswith("|")]
         gate_rows = [
-            row for row in rows
+            row
+            for row in rows
             if len(_md_row_cells(row)) == 7
             and _md_row_cells(row)[0] == "pipe\\|id&lt;script-like content&gt;"
         ]
@@ -724,10 +801,15 @@ class TestGateReporting:
         ok = Trial(task_id="t1", run_index=0, status=TrialStatus.COMPLETED)
         ok.add_outcome(Outcome(trial_id=ok.trial_id, grader_id="g", passed=True, score=1.0))
         crashed = Trial(task_id="t1", run_index=1, status=TrialStatus.COMPLETED)
-        crashed.add_outcome(Outcome(
-            trial_id=crashed.trial_id, grader_id="g", passed=False, score=0.0,
-            grader_error=True,
-        ))
+        crashed.add_outcome(
+            Outcome(
+                trial_id=crashed.trial_id,
+                grader_id="g",
+                passed=False,
+                score=0.0,
+                grader_error=True,
+            )
+        )
         batch.add_trial(ok)
         batch.add_trial(crashed)
         gen = ReportGenerator(k_values=[1], consistency_k_values=[2])
@@ -762,10 +844,13 @@ class TestProvenanceReporting:
         async def _echo(data):
             return dict(data)
 
-        suite = EvalSet(name="suite", tasks=[
-            Task(task_id="a", name="a", input_data={"x": 1}),
-            Task(task_id="b", name="b", input_data={"x": 2}),
-        ])
+        suite = EvalSet(
+            name="suite",
+            tasks=[
+                Task(task_id="a", name="a", input_data={"x": 1}),
+                Task(task_id="b", name="b", input_data={"x": 2}),
+            ],
+        )
         return asyncio.run(EvaluationRunner(SimpleAdapter(_echo), [_G()]).run(suite))
 
     def test_build_report_copies_provenance_and_task_hashes(self):
@@ -834,15 +919,20 @@ class TestProvenanceReporting:
         gen = ReportGenerator()
         report = gen.build_report(_make_batch({"t": [(True, 1.0)]}))
         report.gate = GateResult(
-            status=GateStatus.UNEVALUABLE, exit_code=2,
-            threshold=RegressionSeverity.MODERATE, noise_band=0.03,
+            status=GateStatus.UNEVALUABLE,
+            exit_code=2,
+            threshold=RegressionSeverity.MODERATE,
+            noise_band=0.03,
             skipped_task_content_changed=1,
             reasons=["1 task(s) whose content changed since their baseline was stored: t"],
-            tasks=[TaskGateResult(
-                task_id="t", outcome=TaskGateOutcome.TASK_CONTENT_CHANGED,
-                reason="task content changed since the baseline was stored (aaaa -> bbbb); "
-                       "re-store the baseline for this task",
-            )],
+            tasks=[
+                TaskGateResult(
+                    task_id="t",
+                    outcome=TaskGateOutcome.TASK_CONTENT_CHANGED,
+                    reason="task content changed since the baseline was stored (aaaa -> bbbb); "
+                    "re-store the baseline for this task",
+                )
+            ],
         )
         md = gen.render_markdown(report)
         assert "1 skipped (task content changed)" in md

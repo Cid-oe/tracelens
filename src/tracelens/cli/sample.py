@@ -31,23 +31,33 @@ def add_sample_parser(subparsers: argparse._SubParsersAction) -> None:  # type: 
         help="Select trials for human review (feeds 'reconcile')",
     )
     parser.add_argument(
-        "--trials", required=True,
+        "--trials",
+        required=True,
         help="Path to trials JSON from 'tracelens run --save-trials'",
     )
     parser.add_argument(
-        "--size", type=int, default=20,
+        "--size",
+        type=int,
+        default=20,
         help="Number of trials to select (default: 20)",
     )
     parser.add_argument(
-        "--strategy", default="diverse", choices=list(STRATEGIES),
+        "--strategy",
+        default="diverse",
+        choices=list(STRATEGIES),
         help="Selection strategy (default: diverse)",
     )
     parser.add_argument(
-        "--seed", type=int, default=0,
+        "--seed",
+        type=int,
+        default=0,
         help="Seed for the 'random' strategy (default: 0)",
     )
     parser.add_argument(
-        "--excerpt-chars", type=int, default=280, dest="excerpt_chars",
+        "--excerpt-chars",
+        type=int,
+        default=280,
+        dest="excerpt_chars",
         help="Max chars of each final output to include (default: 280)",
     )
     parser.add_argument(

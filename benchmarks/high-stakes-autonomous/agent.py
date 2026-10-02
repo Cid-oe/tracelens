@@ -80,8 +80,7 @@ class BudgetedAgent(AgentAdapter):
                     f"hard limit {self.memory_hard_limit_mb}MB"
                 )
             raise MemoryError(
-                f"container OOM: needed {needed}MB, "
-                f"hard limit {self.memory_hard_limit_mb}MB"
+                f"container OOM: needed {needed}MB, hard limit {self.memory_hard_limit_mb}MB"
             )
 
         # Enough headroom — succeed.

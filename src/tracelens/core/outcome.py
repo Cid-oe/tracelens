@@ -19,10 +19,10 @@ class GradeLevel(str, Enum):
     """Categorical grade levels for human-readable results."""
 
     EXCELLENT = "excellent"  # Score >= 0.9
-    GOOD = "good"            # Score >= 0.7
+    GOOD = "good"  # Score >= 0.7
     ACCEPTABLE = "acceptable"  # Score >= 0.5
-    POOR = "poor"            # Score >= 0.3
-    FAIL = "fail"            # Score < 0.3
+    POOR = "poor"  # Score >= 0.3
+    FAIL = "fail"  # Score < 0.3
 
     @classmethod
     def from_score(cls, score: float) -> "GradeLevel":
@@ -181,7 +181,5 @@ class AggregatedOutcome(BaseModel):
             pass_rate=passed_count / len(outcomes),
             metric_means={k: float(np.mean(v)) for k, v in all_metrics.items()},
             metric_stds={k: float(np.std(v)) for k, v in all_metrics.items()},
-            grader_pass_rates={
-                k: sum(v) / len(v) for k, v in grader_results.items()
-            },
+            grader_pass_rates={k: sum(v) / len(v) for k, v in grader_results.items()},
         )
