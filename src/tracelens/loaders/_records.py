@@ -6,9 +6,7 @@ from typing import Any
 from tracelens.core.task import Task
 
 
-def validate_mapping_fields(
-    input_field: str, metadata_fields: Sequence[str] | None
-) -> None:
+def validate_mapping_fields(input_field: str, metadata_fields: Sequence[str] | None) -> None:
     """Reject ambiguous input and metadata field configuration."""
     if input_field in Task.model_fields:
         raise ValueError(
@@ -77,8 +75,7 @@ def map_record(
         raise ValueError(f"missing required input field {input_field!r}")
     if "input_data" in row:
         raise ValueError(
-            "input_data cannot be combined with the configured input field "
-            f"{input_field!r}"
+            f"input_data cannot be combined with the configured input field {input_field!r}"
         )
 
     raw_input = row[input_field]

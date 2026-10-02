@@ -30,6 +30,7 @@ from tracelens.metrics.budgets import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def task() -> Task:
     return Task(
@@ -63,8 +64,8 @@ def _make_transcript(
 # LatencyGrader
 # ---------------------------------------------------------------------------
 
-class TestLatencyGrader:
 
+class TestLatencyGrader:
     def test_default_policy_is_warn(self) -> None:
         grader = LatencyGrader("latency", max_ms=1000.0)
         assert grader.policy == EvalPolicy.WARN
@@ -137,8 +138,8 @@ class TestLatencyGrader:
 # TokenBudgetGrader
 # ---------------------------------------------------------------------------
 
-class TestTokenBudgetGrader:
 
+class TestTokenBudgetGrader:
     def test_default_policy_is_warn(self) -> None:
         grader = TokenBudgetGrader("tokens", max_tokens=1000)
         assert grader.policy == EvalPolicy.WARN
@@ -216,8 +217,8 @@ class TestTokenBudgetGrader:
 # ToolCallGrader
 # ---------------------------------------------------------------------------
 
-class TestToolCallGrader:
 
+class TestToolCallGrader:
     def test_default_policy_is_gate(self) -> None:
         grader = ToolCallGrader("tools", required_tools=["search"])
         assert grader.policy == EvalPolicy.GATE
@@ -330,8 +331,8 @@ class TestToolCallGrader:
 # TraceConsistencyGrader
 # ---------------------------------------------------------------------------
 
-class TestTraceConsistencyGrader:
 
+class TestTraceConsistencyGrader:
     def test_default_policy_is_warn(self) -> None:
         grader = TraceConsistencyGrader("consistency")
         assert grader.policy == EvalPolicy.WARN

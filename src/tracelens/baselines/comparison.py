@@ -34,10 +34,10 @@ def _two_sided_z_p(delta: float, spread: float) -> float:
 class RegressionSeverity(str, Enum):
     """Severity levels for regressions."""
 
-    NONE = "none"           # No regression
-    MINOR = "minor"         # < 5% decline
-    MODERATE = "moderate"   # 5-15% decline (default blocking threshold)
-    SEVERE = "severe"       # > 15% decline
+    NONE = "none"  # No regression
+    MINOR = "minor"  # < 5% decline
+    MODERATE = "moderate"  # 5-15% decline (default blocking threshold)
+    SEVERE = "severe"  # > 15% decline
 
 
 class MetricRegression(BaseModel):
@@ -145,9 +145,7 @@ class RegressionReport(BaseModel):
         # the caller only set overall_severity), fall back to the
         # declared severity so existing callers keep working.
         if self.regressions:
-            considered = (
-                self.blocking_regressions if ignore_noise_band else self.regressions
-            )
+            considered = self.blocking_regressions if ignore_noise_band else self.regressions
             effective_severity = max(
                 (r.severity for r in considered),
                 default=RegressionSeverity.NONE,
@@ -340,9 +338,7 @@ class RegressionDetector:
             # avoid scipy's precision-loss RuntimeWarning.
             current_std = float(np.std(current_values, ddof=1))
             if np.isclose(current_std, 0.0, atol=1e-12):
-                p_value = _two_sided_z_p(
-                    delta, baseline_std / float(np.sqrt(len(current_values)))
-                )
+                p_value = _two_sided_z_p(delta, baseline_std / float(np.sqrt(len(current_values))))
             else:
                 _t_stat, p_value_result = stats.ttest_1samp(current_values, baseline_value)
                 p_value = float(p_value_result)
@@ -397,9 +393,7 @@ class RegressionDetector:
             lines.append(f"REGRESSIONS DETECTED ({len(regressions)} metrics):")
             for r in regressions:
                 p_str = (
-                    f"p={r.p_value:.4f}"
-                    if r.p_value is not None
-                    else "p=n/a, insufficient samples"
+                    f"p={r.p_value:.4f}" if r.p_value is not None else "p=n/a, insufficient samples"
                 )
                 lines.append(
                     f"  - {r.metric_name}: {r.baseline_mean:.4f} -> {r.current_mean:.4f} "

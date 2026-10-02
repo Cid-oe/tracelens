@@ -36,9 +36,7 @@ class _CallIndexGrader(CodeGrader):
     def compute_metrics(self, transcript: Transcript, task: Task) -> dict[str, float]:
         return {"call": float(transcript.final_output["call"])}
 
-    def determine_pass(
-        self, metrics: dict[str, float], task: Task
-    ) -> tuple[bool, float]:
+    def determine_pass(self, metrics: dict[str, float], task: Task) -> tuple[bool, float]:
         ok = int(metrics["call"]) in self._passing
         return ok, 1.0 if ok else 0.0
 
@@ -71,9 +69,7 @@ def test_concurrent_completion_order_does_not_change_pass_hat_k() -> None:
     runner = EvaluationRunner(
         adapter=adapter,
         graders=[_CallIndexGrader(passing={0, 1})],  # calls 0 and 1 pass, 2 and 3 fail
-        config=RunnerConfig(
-            num_runs=4, max_concurrency=4, progress_callback=release_next
-        ),
+        config=RunnerConfig(num_runs=4, max_concurrency=4, progress_callback=release_next),
     )
 
     async def _run() -> TrialBatch:

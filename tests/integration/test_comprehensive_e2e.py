@@ -46,6 +46,7 @@ from tracelens.reporting.generator import ReportData, ReportGenerator
 # Test graders
 # ---------------------------------------------------------------------------
 
+
 class AccuracyGrader(CodeGrader):
     """Checks if agent answer equals expected value."""
 
@@ -97,6 +98,7 @@ class QualityGrader(CodeGrader):
 # Test adapters
 # ---------------------------------------------------------------------------
 
+
 async def _adder_agent(input_data: dict) -> dict:
     """Adds two numbers."""
     return {"answer": input_data.get("a", 0) + input_data.get("b", 0)}
@@ -121,6 +123,7 @@ async def _crashing_agent(input_data: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestComprehensivePipeline:
     """Full pipeline with multiple graders, runs, and report generation."""
@@ -160,7 +163,9 @@ class TestCompositeGraderE2E:
     async def test_must_pass_failure_blocks_trial(self):
         """A MUST_PASS grader failure should fail the trial even if others pass."""
         tasks = [
-            Task(task_id="neg", name="Negative", input_data={"a": -500, "b": -500, "expected": -1000}),
+            Task(
+                task_id="neg", name="Negative", input_data={"a": -500, "b": -500, "expected": -1000}
+            ),
         ]
         eval_set = EvalSet(name="Bounds Test", tasks=tasks)
 
@@ -197,8 +202,8 @@ class TestCompositeGraderE2E:
         composite = CompositeGrader(
             grader_id="composite",
             graders=[
-                (BoundsGrader(), 0.3),     # MUST_PASS — should pass (3 is in bounds)
-                (QualityGrader(), 0.7),    # SCORE_CONTRIBUTOR — quality=0.03, fails threshold
+                (BoundsGrader(), 0.3),  # MUST_PASS — should pass (3 is in bounds)
+                (QualityGrader(), 0.7),  # SCORE_CONTRIBUTOR — quality=0.03, fails threshold
             ],
         )
 
@@ -417,12 +422,24 @@ class TestEvalSetFilteringE2E:
     async def test_filtered_eval_set_runs_only_matching_tasks(self):
         """filtered_eval_set returns an EvalSet that preserves config."""
         tasks = [
-            Task(task_id="easy-1", name="Easy", input_data={"a": 1, "b": 1, "expected": 2},
-                 category="easy"),
-            Task(task_id="easy-2", name="Easy2", input_data={"a": 2, "b": 2, "expected": 4},
-                 category="easy"),
-            Task(task_id="hard-1", name="Hard", input_data={"a": 99, "b": 99, "expected": 198},
-                 category="hard"),
+            Task(
+                task_id="easy-1",
+                name="Easy",
+                input_data={"a": 1, "b": 1, "expected": 2},
+                category="easy",
+            ),
+            Task(
+                task_id="easy-2",
+                name="Easy2",
+                input_data={"a": 2, "b": 2, "expected": 4},
+                category="easy",
+            ),
+            Task(
+                task_id="hard-1",
+                name="Hard",
+                input_data={"a": 99, "b": 99, "expected": 198},
+                category="hard",
+            ),
         ]
         full_set = EvalSet(name="Mixed", tasks=tasks, default_num_runs=3)
 
@@ -509,10 +526,8 @@ class TestPassAtKReliabilityE2E:
     async def test_statistics_from_pipeline(self):
         """Run pipeline and verify pass@k/pass^k are reasonable."""
         tasks = [
-            Task(task_id="always-pass", name="Pass",
-                 input_data={"a": 1, "b": 1, "expected": 2}),
-            Task(task_id="always-fail", name="Fail",
-                 input_data={"a": 1, "b": 1, "expected": 999}),
+            Task(task_id="always-pass", name="Pass", input_data={"a": 1, "b": 1, "expected": 2}),
+            Task(task_id="always-fail", name="Fail", input_data={"a": 1, "b": 1, "expected": 999}),
         ]
         eval_set = EvalSet(name="Stats", tasks=tasks)
 
@@ -550,8 +565,16 @@ class TestJSONTaskRoundTrip:
         # Write tasks to JSON
         tasks_data = {
             "tasks": [
-                {"task_id": "json-1", "name": "JSON 1", "input_data": {"a": 10, "b": 20, "expected": 30}},
-                {"task_id": "json-2", "name": "JSON 2", "input_data": {"a": 7, "b": 3, "expected": 10}},
+                {
+                    "task_id": "json-1",
+                    "name": "JSON 1",
+                    "input_data": {"a": 10, "b": 20, "expected": 30},
+                },
+                {
+                    "task_id": "json-2",
+                    "name": "JSON 2",
+                    "input_data": {"a": 7, "b": 3, "expected": 10},
+                },
             ]
         }
         tasks_file = tmp_path / "tasks.json"
