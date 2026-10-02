@@ -50,9 +50,7 @@ class MetricValue:
         if self.value is None:
             parts = [f"N/A: {self.reason}" if self.reason else "N/A"]
             if self.total_tasks is not None:
-                parts.append(
-                    f"{self.eligible_tasks or 0}/{self.total_tasks} tasks eligible"
-                )
+                parts.append(f"{self.eligible_tasks or 0}/{self.total_tasks} tasks eligible")
             if self.max_runs is not None:
                 parts.append(f"max {self.max_runs} gradable run(s) recorded")
             return "; ".join(parts)

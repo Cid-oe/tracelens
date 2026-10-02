@@ -59,10 +59,12 @@ class AgentAdapter(ABC):
     def record_error(self, transcript: Transcript, error: Exception) -> None:
         """Helper to record an exception in a transcript."""
         transcript.errors.append(str(error))
-        transcript.add_step(TranscriptStep(
-            step_type=StepType.ERROR,
-            error=str(error),
-        ))
+        transcript.add_step(
+            TranscriptStep(
+                step_type=StepType.ERROR,
+                error=str(error),
+            )
+        )
         transcript.completed_at = utc_now()
 
 
@@ -88,10 +90,12 @@ class SimpleAdapter(AgentAdapter):
         try:
             result = await self._fn(task.input_data)
             transcript.final_output = result
-            transcript.add_step(TranscriptStep(
-                step_type=StepType.AGENT_OUTPUT,
-                content=result,
-            ))
+            transcript.add_step(
+                TranscriptStep(
+                    step_type=StepType.AGENT_OUTPUT,
+                    content=result,
+                )
+            )
         except Exception as exc:
             self.record_error(transcript, exc)
             raise

@@ -18,6 +18,7 @@ class TestSimpleAdapter:
 
     async def test_successful_run(self, task: Task):
         """SimpleAdapter returns a transcript with the function's output."""
+
         async def fn(input_data: dict) -> dict:
             return {"answer": input_data["goal"]}
 
@@ -32,6 +33,7 @@ class TestSimpleAdapter:
 
     async def test_records_agent_output_step(self, task: Task):
         """SimpleAdapter adds an AGENT_OUTPUT step."""
+
         async def fn(input_data: dict) -> str:
             return "result"
 
@@ -44,6 +46,7 @@ class TestSimpleAdapter:
 
     async def test_error_recording(self, task: Task):
         """SimpleAdapter records errors and re-raises."""
+
         async def fn(input_data: dict) -> dict:
             raise ValueError("boom")
 
@@ -53,6 +56,7 @@ class TestSimpleAdapter:
 
     async def test_start_transcript_helper(self, task: Task):
         """start_transcript creates a Transcript with correct task_id and timing."""
+
         async def fn(input_data: dict) -> str:
             return "ok"
 
@@ -64,6 +68,7 @@ class TestSimpleAdapter:
 
     async def test_record_error_helper(self, task: Task):
         """record_error adds error info to the transcript."""
+
         async def fn(input_data: dict) -> str:
             return "ok"
 
@@ -114,6 +119,7 @@ class TestAgentAdapterLifecycleHooks:
 
     async def test_default_hooks_are_noop(self, task: Task):
         """Default setup/teardown do nothing and don't raise."""
+
         async def fn(data: dict) -> str:
             return "ok"
 

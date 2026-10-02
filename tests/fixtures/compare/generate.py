@@ -42,14 +42,18 @@ RUNS = 6
 
 
 def tasks() -> EvalSet:
-    return EvalSet(name="compare-fixture", tasks=[
-        Task(
-            task_id=f"t{i:02d}", name=f"task {i}",
-            input_data={"prompt": f"question {i}", "index": i},
-            difficulty=("easy", "medium", "hard")[i % 3],
-        )
-        for i in range(TASK_COUNT)
-    ])
+    return EvalSet(
+        name="compare-fixture",
+        tasks=[
+            Task(
+                task_id=f"t{i:02d}",
+                name=f"task {i}",
+                input_data={"prompt": f"question {i}", "index": i},
+                difficulty=("easy", "medium", "hard")[i % 3],
+            )
+            for i in range(TASK_COUNT)
+        ],
+    )
 
 
 def base_probability(index: int) -> float:
@@ -70,9 +74,13 @@ class SimulatedAgent(AgentAdapter):
         run_index = self.calls.get(task.task_id, 0)
         self.calls[task.task_id] = run_index + 1
         index = int(task.input_data["index"])
-        draw = int(hashlib.sha256(
-            f"{self.scenario}-{task.task_id}-{run_index}".encode()
-        ).hexdigest(), 16) / 16**64
+        draw = (
+            int(
+                hashlib.sha256(f"{self.scenario}-{task.task_id}-{run_index}".encode()).hexdigest(),
+                16,
+            )
+            / 16**64
+        )
         probability = min(1.0, max(0.0, base_probability(index) + self.shift))
         passed = draw < probability
         latency = 1000.0 + 50.0 * index + self.latency_shift_ms + (run_index % 3) * 10.0
