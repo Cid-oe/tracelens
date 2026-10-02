@@ -70,8 +70,8 @@ class TestEndToEnd:
 
         # Verify pass/fail by task
         results = batch.get_pass_results_by_task()
-        assert all(results["add-1"])       # All pass
-        assert all(results["add-2"])       # All pass
+        assert all(results["add-1"])  # All pass
+        assert all(results["add-2"])  # All pass
         assert not any(results["add-wrong"])  # All fail
 
         # Verify trial details

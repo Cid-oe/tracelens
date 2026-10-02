@@ -45,7 +45,8 @@ def add_calibrate_parser(
         help="Path to eval set / samples JSON file (required only with --transcripts)",
     )
     parser.add_argument(
-        "--annotations", required=True,
+        "--annotations",
+        required=True,
         help="Path to annotations / review-worksheet JSON file",
     )
     parser.add_argument(
@@ -57,7 +58,9 @@ def add_calibrate_parser(
         help="Path to results JSON file (dict of task_id → outcome)",
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.7,
+        "--threshold",
+        type=float,
+        default=0.7,
         help="Minimum Pearson r for calibrated (default: 0.7)",
     )
     parser.add_argument(

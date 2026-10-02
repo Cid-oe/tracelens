@@ -52,41 +52,58 @@ def add_compare_parser(subparsers: argparse._SubParsersAction) -> None:  # type:
     parser.add_argument("baseline", help="Trials JSON of the reference run")
     parser.add_argument("candidate", help="Trials JSON of the run under test")
     parser.add_argument(
-        "--metric", default="pass_rate", metavar="METRIC",
+        "--metric",
+        default="pass_rate",
+        metavar="METRIC",
         help=(
-            "pass_rate (default), mean_score, or <grader_id>.<metric_name> for an "
-            "outcome metric"
+            "pass_rate (default), mean_score, or <grader_id>.<metric_name> for an outcome metric"
         ),
     )
     parser.add_argument(
-        "--direction", choices=["higher", "lower"], default=None,
+        "--direction",
+        choices=["higher", "lower"],
+        default=None,
         help="Which way is better for a <grader_id>.<metric_name> metric (default: higher)",
     )
     parser.add_argument(
-        "--grader", default=None, metavar="GRADER_ID",
+        "--grader",
+        default=None,
+        metavar="GRADER_ID",
         help="Restrict pass_rate / mean_score to one grader's outcome",
     )
     parser.add_argument(
-        "--threshold", type=float, default=DEFAULT_THRESHOLD,
+        "--threshold",
+        type=float,
+        default=DEFAULT_THRESHOLD,
         help=(
             "Practical threshold: an absolute delta on the metric's scale "
             f"(default: {DEFAULT_THRESHOLD})"
         ),
     )
     parser.add_argument(
-        "--confidence", type=float, default=0.95,
+        "--confidence",
+        type=float,
+        default=0.95,
         help="Confidence level of the interval (default: 0.95)",
     )
     parser.add_argument(
-        "--bootstrap", type=int, default=10000, dest="n_bootstrap", metavar="B",
+        "--bootstrap",
+        type=int,
+        default=10000,
+        dest="n_bootstrap",
+        metavar="B",
         help="Bootstrap resamples and sign-flip draws (default: 10000)",
     )
     parser.add_argument(
-        "--seed", type=int, default=0,
+        "--seed",
+        type=int,
+        default=0,
         help="Seed for the resampling; same inputs and seed reproduce the result (default: 0)",
     )
     parser.add_argument(
-        "--unmatched-tasks", choices=list(UNMATCHED_POLICIES), default="error",
+        "--unmatched-tasks",
+        choices=list(UNMATCHED_POLICIES),
+        default="error",
         dest="unmatched_tasks",
         help=(
             "What to do when the task sets differ: 'error' refuses (default); "
@@ -94,19 +111,25 @@ def add_compare_parser(subparsers: argparse._SubParsersAction) -> None:  # type:
         ),
     )
     parser.add_argument(
-        "--require-provenance", action="store_true", dest="require_provenance",
+        "--require-provenance",
+        action="store_true",
+        dest="require_provenance",
         help="Refuse artifacts without provenance instead of aligning tasks by id",
     )
     parser.add_argument(
-        "--observe", action="store_true",
+        "--observe",
+        action="store_true",
         help="Observational mode: exit 0 for every evaluated comparison",
     )
     parser.add_argument(
-        "--top", type=int, default=5,
+        "--top",
+        type=int,
+        default=5,
         help="How many per-task movers to print (default: 5)",
     )
     parser.add_argument(
-        "--output", default=None,
+        "--output",
+        default=None,
         help="Path to write the comparison JSON (same fields as the summary)",
     )
 
@@ -122,8 +145,7 @@ def _load_batch(path: str, *, debug: bool) -> TrialBatch | int:
         return usage_error(f"invalid JSON in {path}: {exc}", exc=exc, debug=debug)
     if isinstance(data, dict) and "trials" not in data and "task_summaries" in data:
         return usage_error(
-            f"{path} is a results file (tracelens run --output); it has no per-trial "
-            "samples",
+            f"{path} is a results file (tracelens run --output); it has no per-trial samples",
             hint="Pass the trials file written by 'tracelens run --save-trials'.",
         )
     try:
@@ -132,7 +154,8 @@ def _load_batch(path: str, *, debug: bool) -> TrialBatch | int:
         return usage_error(
             f"{path} is not a valid trials file (expected 'tracelens run --save-trials' "
             f"output): {exc}",
-            exc=exc, debug=debug,
+            exc=exc,
+            debug=debug,
         )
 
 

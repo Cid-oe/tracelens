@@ -62,8 +62,11 @@ def _task(task_id: str, x: int = 1, **kwargs: Any) -> Task:
 
 def _settings(**overrides: Any) -> RunnerSettings:
     base: dict[str, Any] = {
-        "num_runs": 2, "max_concurrency": 3, "timeout_seconds": 30.0,
-        "max_infra_retries": 1, "infra_exception_types": ["builtins.ConnectionError"],
+        "num_runs": 2,
+        "max_concurrency": 3,
+        "timeout_seconds": 30.0,
+        "max_infra_retries": 1,
+        "infra_exception_types": ["builtins.ConnectionError"],
     }
     base.update(overrides)
     return RunnerSettings(**base)
@@ -158,11 +161,17 @@ class TestIdentities:
 
     def test_runner_settings_from_config(self):
         config = RunnerConfig(
-            num_runs=4, max_concurrency=2, timeout_seconds=12.5, max_infra_retries=3,
+            num_runs=4,
+            max_concurrency=2,
+            timeout_seconds=12.5,
+            max_infra_retries=3,
             infra_exception_types=(ConnectionError, MemoryError),
         )
         assert RunnerSettings.from_config(config) == RunnerSettings(
-            num_runs=4, max_concurrency=2, timeout_seconds=12.5, max_infra_retries=3,
+            num_runs=4,
+            max_concurrency=2,
+            timeout_seconds=12.5,
+            max_infra_retries=3,
             infra_exception_types=["builtins.ConnectionError", "builtins.MemoryError"],
         )
 
@@ -172,14 +181,17 @@ class TestRunProvenance:
         spec = DecisionSpec(model=ModelConfig(provider="p", model_id="m"))
         tasks = [_task("a"), _task("b")]
         prov = _provenance(
-            tasks, graders=[_Grader("g1"), _VersionedGrader("g2")],
-            adapter=_VersionedAdapter(), spec=spec,
+            tasks,
+            graders=[_Grader("g1"), _VersionedGrader("g2")],
+            adapter=_VersionedAdapter(),
+            spec=spec,
         )
         assert prov.schema_version == PROVENANCE_SCHEMA_VERSION
         assert prov.run_id == "run-1" and prov.tracelens_version
         assert prov.measurement.eval_set_name == "suite"
         assert prov.measurement.task_hashes == {
-            "a": task_content_hash(_task("a")), "b": task_content_hash(_task("b")),
+            "a": task_content_hash(_task("a")),
+            "b": task_content_hash(_task("b")),
         }
         assert prov.measurement.eval_set_hash == eval_set_hash(EvalSet(name="s", tasks=tasks))
         assert [g.name for g in prov.measurement.graders] == ["g1", "g2"]
