@@ -231,15 +231,17 @@ def _transcript_view(
     views = []
     for index, step in enumerate(shown, start=1):
         summary, cut = _step_summary(step, max_chars)
-        views.append(StepView(
-            index=index,
-            step_type=step.step_type.value,
-            summary=summary,
-            truncated=cut,
-            error=step.error,
-            tokens_in=step.tokens_in,
-            tokens_out=step.tokens_out,
-        ))
+        views.append(
+            StepView(
+                index=index,
+                step_type=step.step_type.value,
+                summary=summary,
+                truncated=cut,
+                error=step.error,
+                tokens_in=step.tokens_in,
+                tokens_out=step.tokens_out,
+            )
+        )
     final_output, final_cut = excerpt(transcript.final_output, max_chars)
     return TranscriptView(
         steps_total=len(steps),
@@ -267,8 +269,10 @@ def trial_view(
     max_chars: int | None = DEFAULT_MAX_CHARS,
 ) -> TrialView:
     """The bounded, explicit view of one trial."""
-    if task is not None and task.expectation is not None and (
-        task.expectation.expected_output is not None
+    if (
+        task is not None
+        and task.expectation is not None
+        and (task.expectation.expected_output is not None)
     ):
         expected, _ = excerpt(task.expectation.expected_output, max_chars)
     elif task is not None:
@@ -282,16 +286,18 @@ def trial_view(
     outcomes = []
     for outcome in trial.outcomes:
         feedback, cut = excerpt(outcome.feedback, max_chars)
-        outcomes.append(OutcomeView(
-            grader_id=outcome.grader_id,
-            passed=outcome.passed,
-            score=outcome.score,
-            grader_error=outcome.grader_error,
-            grade_level=outcome.grade_level.value if outcome.grade_level else None,
-            feedback=feedback,
-            feedback_truncated=cut,
-            metrics=dict(outcome.metrics),
-        ))
+        outcomes.append(
+            OutcomeView(
+                grader_id=outcome.grader_id,
+                passed=outcome.passed,
+                score=outcome.score,
+                grader_error=outcome.grader_error,
+                grade_level=outcome.grade_level.value if outcome.grade_level else None,
+                feedback=feedback,
+                feedback_truncated=cut,
+                metrics=dict(outcome.metrics),
+            )
+        )
     return TrialView(
         task_id=trial.task_id,
         task_name=task.name if task is not None else None,
@@ -423,9 +429,7 @@ def render_text(report: InspectionReport) -> str:
     lines = [
         f"Inspected {report.source}: {report.total_trials} trial(s), run {run}, "
         f"TraceLens {report.tracelens_version}",
-        "  " + ", ".join(
-            f"{KIND_LABELS[kind]} {report.totals.get(kind, 0)}" for kind in TrialKind
-        ),
+        "  " + ", ".join(f"{KIND_LABELS[kind]} {report.totals.get(kind, 0)}" for kind in TrialKind),
         f"Selected {report.selected} trial(s) ({report.selection})"
         + (f"; showing the first {report.shown}" if report.shown < report.selected else ""),
     ]
@@ -488,31 +492,38 @@ def _trial_html(number: int, trial: TrialView) -> str:
     rows.append(_row("expected", trial.expected))
     rows.append(_row("actual", trial.actual))
     rows.append(_row("trial id", trial.trial_id))
-    graders = "".join(
-        f"<li><span class=\"badge\" style=\"background:{'#a855f7' if o.grader_error else ('#22c55e' if o.passed else '#ef4444')}\">"
-        f"{'CRASHED' if o.grader_error else ('PASS' if o.passed else 'FAIL')}</span> "
-        f"{escape(o.describe())}</li>"
-        for o in trial.outcomes
-    ) or "<li>none (no outcome was recorded)</li>"
+    graders = (
+        "".join(
+            f'<li><span class="badge" style="background:{"#a855f7" if o.grader_error else ("#22c55e" if o.passed else "#ef4444")}">'
+            f"{'CRASHED' if o.grader_error else ('PASS' if o.passed else 'FAIL')}</span> "
+            f"{escape(o.describe())}</li>"
+            for o in trial.outcomes
+        )
+        or "<li>none (no outcome was recorded)</li>"
+    )
     if trial.transcript is None:
-        transcript = "<p class=\"muted\">transcript: missing</p>"
+        transcript = '<p class="muted">transcript: missing</p>'
     else:
-        steps = "".join(
-            f"<li><code>{escape(step.describe())}</code></li>" for step in trial.transcript.steps
-        ) or "<li class=\"muted\">no steps recorded</li>"
+        steps = (
+            "".join(
+                f"<li><code>{escape(step.describe())}</code></li>"
+                for step in trial.transcript.steps
+            )
+            or '<li class="muted">no steps recorded</li>'
+        )
         errors = "".join(
-            f"<li class=\"error\">{escape(error)}</li>" for error in trial.transcript.errors
+            f'<li class="error">{escape(error)}</li>' for error in trial.transcript.errors
         )
         transcript = (
             f"<details><summary>transcript: {escape(trial.transcript.headline())}</summary>"
-            f"<ol class=\"steps\">{steps}</ol>"
-            + (f"<ul class=\"errors\">{errors}</ul>" if errors else "")
+            f'<ol class="steps">{steps}</ol>'
+            + (f'<ul class="errors">{errors}</ul>' if errors else "")
             + "</details>"
         )
     return (
-        f"<details class=\"trial\" open><summary><span class=\"badge\" style=\"background:{color}\">"
+        f'<details class="trial" open><summary><span class="badge" style="background:{color}">'
         f"{escape(KIND_LABELS[trial.kind])}</span> [{number}] {escape(trial.headline())}</summary>"
-        f"<table>{''.join(rows)}</table><h4>Graders</h4><ul class=\"graders\">{graders}</ul>"
+        f'<table>{"".join(rows)}</table><h4>Graders</h4><ul class="graders">{graders}</ul>'
         f"{transcript}</details>"
     )
 
@@ -520,19 +531,18 @@ def _trial_html(number: int, trial: TrialView) -> str:
 def render_html(report: InspectionReport) -> str:
     """A self-contained, offline drilldown; every value is escaped."""
     counts = "".join(
-        f"<span class=\"badge\" style=\"background:{_KIND_COLORS[kind]}\">"
+        f'<span class="badge" style="background:{_KIND_COLORS[kind]}">'
         f"{escape(KIND_LABELS[kind])} {report.totals.get(kind, 0)}</span>"
         for kind in TrialKind
     )
     trials = "".join(_trial_html(n, t) for n, t in enumerate(report.trials, start=1)) or (
-        "<p class=\"muted\">No trial matches the selection.</p>"
+        '<p class="muted">No trial matches the selection.</p>'
     )
-    showing = (
-        f"; showing the first {report.shown}" if report.shown < report.selected else ""
-    )
+    showing = f"; showing the first {report.shown}" if report.shown < report.selected else ""
     expected_note = (
-        "" if report.eval_set_supplied
-        else "<p class=\"muted\">Expected outputs: not supplied (pass --eval-set to show them).</p>"
+        ""
+        if report.eval_set_supplied
+        else '<p class="muted">Expected outputs: not supplied (pass --eval-set to show them).</p>'
     )
     return f"""<!DOCTYPE html>
 <html lang="en">

@@ -19,9 +19,7 @@ class SafetyGateGrader(CodeGrader):
             config=GraderConfig(policy=EvalPolicy.GATE),
         )
 
-    def compute_metrics(
-        self, transcript: Transcript, task: Task
-    ) -> dict[str, float]:
+    def compute_metrics(self, transcript: Transcript, task: Task) -> dict[str, float]:
         if task.category != "safety":
             # Not applicable — trivially passes and contributes nothing.
             return {"safety_applicable": 0.0, "safety_passed": 1.0}
@@ -40,9 +38,7 @@ class SafetyGateGrader(CodeGrader):
             "safety_passed": 1.0 if passed else 0.0,
         }
 
-    def determine_pass(
-        self, metrics: dict[str, float], task: Task
-    ) -> tuple[bool, float]:
+    def determine_pass(self, metrics: dict[str, float], task: Task) -> tuple[bool, float]:
         passed = metrics["safety_passed"] == 1.0
         return passed, metrics["safety_passed"]
 
@@ -60,9 +56,7 @@ class CapabilityGrader(CodeGrader):
     def __init__(self) -> None:
         super().__init__("capability")
 
-    def compute_metrics(
-        self, transcript: Transcript, task: Task
-    ) -> dict[str, float]:
+    def compute_metrics(self, transcript: Transcript, task: Task) -> dict[str, float]:
         if task.category != "capability":
             # Not applicable to this task; contribute a trivial pass so the
             # combined trial verdict is driven by the grader whose domain
@@ -75,8 +69,6 @@ class CapabilityGrader(CodeGrader):
             "success": 1.0 if final.get("success") else 0.0,
         }
 
-    def determine_pass(
-        self, metrics: dict[str, float], task: Task
-    ) -> tuple[bool, float]:
+    def determine_pass(self, metrics: dict[str, float], task: Task) -> tuple[bool, float]:
         passed = metrics["success"] == 1.0
         return passed, metrics["success"]

@@ -50,16 +50,20 @@ async def flaky_agent(input_data: dict) -> dict:
 
 
 async def run_once(budget_mb: int) -> tuple[float, float, DecisionSpec]:
-    spec = DecisionSpec(infra=InfraConfig(
-        memory_hard_limit_mb=budget_mb,
-        runtime_platform="local-demo",
-    ))
+    spec = DecisionSpec(
+        infra=InfraConfig(
+            memory_hard_limit_mb=budget_mb,
+            runtime_platform="local-demo",
+        )
+    )
     tasks = [
         Task(name="lean", input_data={"_budget_mb": budget_mb, "memory_mb_needed": 128}),
         Task(name="heavy", input_data={"_budget_mb": budget_mb, "memory_mb_needed": 1024}),
     ]
     batch = await EvaluationRunner(
-        SimpleAdapter(flaky_agent), [], RunnerConfig(num_runs=3),
+        SimpleAdapter(flaky_agent),
+        [],
+        RunnerConfig(num_runs=3),
     ).run(EvalSet(name="demo", tasks=tasks))
     # Pass rate from the runner: INFRA_ERROR trials don't count as passes.
     # NOTE: the CLI baseline gate EXCLUDES infra-error trials from its

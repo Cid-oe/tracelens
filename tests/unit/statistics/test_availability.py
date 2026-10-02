@@ -19,8 +19,12 @@ from tracelens.statistics.pass_at_k import (
 class TestMetricValue:
     def test_available_describe_and_roundtrip(self):
         mv = MetricValue(
-            name="pass@1", value=0.85, eligible_tasks=2, total_tasks=2,
-            required_runs=1, max_runs=3,
+            name="pass@1",
+            value=0.85,
+            eligible_tasks=2,
+            total_tasks=2,
+            required_runs=1,
+            max_runs=3,
         )
         assert mv.available
         assert mv.describe() == "0.8500 (2/2 tasks)"
@@ -29,8 +33,13 @@ class TestMetricValue:
 
     def test_unavailable_describe_and_roundtrip(self):
         mv = MetricValue(
-            name="pass@5", value=None, eligible_tasks=0, total_tasks=2,
-            required_runs=5, max_runs=1, reason="needs at least 5 gradable runs per task",
+            name="pass@5",
+            value=None,
+            eligible_tasks=0,
+            total_tasks=2,
+            required_runs=5,
+            max_runs=1,
+            reason="needs at least 5 gradable runs per task",
         )
         assert not mv.available
         assert mv.describe() == (
@@ -49,7 +58,9 @@ class TestMetricValue:
 
     def test_reason_text(self):
         assert unavailable_reason("gradable runs", 5, 0) == "no tasks with gradable trials"
-        assert unavailable_reason("gradable runs", 5, 3) == "needs at least 5 gradable runs per task"
+        assert (
+            unavailable_reason("gradable runs", 5, 3) == "needs at least 5 gradable runs per task"
+        )
 
 
 class TestPassAtKMetric:

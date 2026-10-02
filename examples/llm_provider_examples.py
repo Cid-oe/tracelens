@@ -72,9 +72,7 @@ class AnthropicMessagesProvider(LLMProvider):
             messages=[{"role": "user", "content": prompt}],
         )
         text_parts = [
-            block.text
-            for block in response.content
-            if getattr(block, "type", None) == "text"
+            block.text for block in response.content if getattr(block, "type", None) == "text"
         ]
         if not text_parts:
             raise RuntimeError("Anthropic response did not include text content")
@@ -159,9 +157,7 @@ def provider_from_options(provider_name: str, *, live: bool) -> LLMProvider:
 
     if provider_name == "anthropic":
         if not os.getenv("ANTHROPIC_API_KEY"):
-            raise RuntimeError(
-                "ANTHROPIC_API_KEY is required for --provider anthropic --live"
-            )
+            raise RuntimeError("ANTHROPIC_API_KEY is required for --provider anthropic --live")
         try:
             return AnthropicMessagesProvider()
         except ImportError as exc:
@@ -208,10 +204,7 @@ def parse_args() -> argparse.Namespace:
         "--provider",
         choices=("openai", "anthropic", "all"),
         default=os.getenv("TRACELENS_PROVIDER", "all").lower(),
-        help=(
-            "Provider to run. Defaults to TRACELENS_PROVIDER when set, "
-            "otherwise all."
-        ),
+        help=("Provider to run. Defaults to TRACELENS_PROVIDER when set, otherwise all."),
     )
     parser.add_argument(
         "--live",
@@ -224,9 +217,7 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
     if args.provider not in {"openai", "anthropic", "all"}:
-        parser.error(
-            "--provider, or TRACELENS_PROVIDER, must be openai, anthropic, or all"
-        )
+        parser.error("--provider, or TRACELENS_PROVIDER, must be openai, anthropic, or all")
     return args
 
 
