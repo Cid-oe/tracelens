@@ -58,8 +58,12 @@ def check(base: str, head: str) -> list[str]:
         if name in base_sections:
             before = bullets(base_sections[name])
             if len(entries) > len(before):
-                added = [entry for entry in entries if entry not in before] or entries[len(before):]
-                shown = "; ".join(f"{entry[:70]}..." if len(entry) > 70 else entry for entry in added)
+                added = [entry for entry in entries if entry not in before] or entries[
+                    len(before) :
+                ]
+                shown = "; ".join(
+                    f"{entry[:70]}..." if len(entry) > 70 else entry for entry in added
+                )
                 problems.append(
                     f"released section [{name}] gained {len(entries) - len(before)} entr"
                     f"{'y' if len(entries) - len(before) == 1 else 'ies'} ({shown}): "
@@ -110,7 +114,9 @@ def main(argv: list[str] | None = None) -> int:
     if problems:
         return 1
     queued = len(bullets(sections(head_text).get(UNRELEASED, "")))
-    print(f"ok: {queued} entr{'y' if queued == 1 else 'ies'} under [Unreleased]; released sections unchanged")
+    print(
+        f"ok: {queued} entr{'y' if queued == 1 else 'ies'} under [Unreleased]; released sections unchanged"
+    )
     return 0
 
 

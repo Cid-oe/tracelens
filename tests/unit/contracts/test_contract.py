@@ -207,9 +207,7 @@ class TestBehaviorContractIO:
             max_tokens=1000,
         )
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(contract.model_dump(mode="json"), f)
             path = Path(f.name)
 

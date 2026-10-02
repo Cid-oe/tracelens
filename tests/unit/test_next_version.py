@@ -57,21 +57,27 @@ class TestLatestTag:
 
 
 class TestParseTitle:
-    @pytest.mark.parametrize("title", [
-        "release: v0.6.0",
-        "release: v0.6.0 (#95)",
-        "Merge pull request #42 from ssf0409/release/v0.6.0",
-    ])
+    @pytest.mark.parametrize(
+        "title",
+        [
+            "release: v0.6.0",
+            "release: v0.6.0 (#95)",
+            "Merge pull request #42 from ssf0409/release/v0.6.0",
+        ],
+    )
     def test_release_commits(self, title):
         assert parse_title(title + "\n\nbody").kind == "release_commit"
 
-    @pytest.mark.parametrize("title", [
-        "fix: x [release: skip]",
-        "fix: x [Release: SKIP]",
-        "[skip release] fix: x",
-        "fix: x [no release]",
-        "fix: x [release: none]",
-    ])
+    @pytest.mark.parametrize(
+        "title",
+        [
+            "fix: x [release: skip]",
+            "fix: x [Release: SKIP]",
+            "[skip release] fix: x",
+            "fix: x [no release]",
+            "fix: x [release: none]",
+        ],
+    )
     def test_skip_markers(self, title):
         assert parse_title(title).kind == "skip"
 
@@ -82,7 +88,9 @@ class TestParseTitle:
         assert parse_title("feat: x [release: v1.0.0rc1]") == module.Marker("version", "1.0.0rc1")
 
     def test_only_the_title_is_read(self):
-        assert parse_title("feat: x\n\nThe body says [release: skip] but that is prose.").kind is None
+        assert (
+            parse_title("feat: x\n\nThe body says [release: skip] but that is prose.").kind is None
+        )
         assert parse_title("").kind is None
 
     def test_repeated_identical_markers_are_one_request(self):
@@ -110,7 +118,8 @@ class TestInferredBump:
 
     def test_entries_without_a_heading_cannot_be_called_fixes(self):
         assert inferred_bump("- something\n") == (
-            "minor", "[Unreleased] has entries outside any ### heading"
+            "minor",
+            "[Unreleased] has entries outside any ### heading",
         )
 
 
@@ -119,7 +128,10 @@ class TestDecide:
         decision = decide(changelog(FIXES), "fix: x (#12)", TAGS)
         assert decision.release is True
         assert (decision.version, decision.bump) == ("0.5.1", "patch")
-        assert decision.reason == "[Unreleased] has entries only under Fixed: patch release after v0.5.0"
+        assert (
+            decision.reason
+            == "[Unreleased] has entries only under Fixed: patch release after v0.5.0"
+        )
 
     def test_features_make_a_minor_release(self):
         decision = decide(changelog(FEATURES), "feat: x", TAGS)
@@ -176,7 +188,9 @@ class TestDecide:
     def test_first_release_ever(self):
         assert decide(first_changelog(FEATURES), "feat: x", []).version == "0.1.0"
         assert decide(first_changelog(FIXES), "fix: x", []).version == "0.0.1"
-        assert decide(first_changelog(FIXES), "fix: x", []).reason.endswith("as the first release tag")
+        assert decide(first_changelog(FIXES), "fix: x", []).reason.endswith(
+            "as the first release tag"
+        )
 
     def test_no_unreleased_section_is_an_error(self):
         with pytest.raises(ReleaseError, match="no '## \\[Unreleased\\]'"):
@@ -185,14 +199,21 @@ class TestDecide:
     def test_reason_is_one_line_for_github_output(self):
         decision = module.Decision(True, "two\nlines  here", "0.1.0", "minor")
         assert decision.lines() == [
-            "release=true", "version=0.1.0", "bump=minor", "reason=two lines here"
+            "release=true",
+            "version=0.1.0",
+            "bump=minor",
+            "reason=two lines here",
         ]
 
 
 class TestCommandLine:
     def _run(self, *args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(SCRIPT), *args], cwd=cwd, capture_output=True, text=True, timeout=60,
+            [sys.executable, str(SCRIPT), *args],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
 
     def test_prints_github_output_lines(self, tmp_path: Path):
@@ -213,7 +234,9 @@ class TestCommandLine:
         (tmp_path / "CHANGELOG.md").write_text(changelog(FIXES))
         bad = self._run("--message", "x [release: 0.4.1]", "--tags", *TAGS, cwd=tmp_path)
         assert bad.returncode == 1 and "older than the latest tag" in bad.stderr
-        assert self._run("--message", "x", "--changelog", "missing.md", cwd=tmp_path).returncode == 2
+        assert (
+            self._run("--message", "x", "--changelog", "missing.md", cwd=tmp_path).returncode == 2
+        )
         assert self._run("--message-file", "missing.txt", cwd=tmp_path).returncode == 2
         assert self._run("--tags", cwd=tmp_path).returncode == 2  # a message is required
 
@@ -225,9 +248,7 @@ class TestCommandLine:
         text = (REPO / "CHANGELOG.md").read_text(encoding="utf-8")
         tags = [f"v{m.group('name')}" for m in module.SECTION.finditer(text)]
         assert tags, "the changelog must have dated sections"
-        result = self._run(
-            "--message", "chore: check the release state", "--tags", *tags, cwd=REPO
-        )
+        result = self._run("--message", "chore: check the release state", "--tags", *tags, cwd=REPO)
         assert result.returncode == 0, result.stderr
         output = dict(line.split("=", 1) for line in result.stdout.splitlines())
         _section, base, _final = module.latest_section(text)
@@ -279,7 +300,8 @@ class TestWorkflowWiring:
         tag = self._load("release-tag.yml")["jobs"]["tag"]
         assert "startsWith(github.event.head_commit.message, 'release: v')" in tag["if"]
         auto = "\n".join(
-            step.get("run", "") for step in self._load("release-auto.yml")["jobs"]["release"]["steps"]
+            step.get("run", "")
+            for step in self._load("release-auto.yml")["jobs"]["release"]["steps"]
         )
         assert 'git commit -m "release: v$VERSION"' in auto
         assert 'git tag -a "v$VERSION" -m "release: v$VERSION"' in auto

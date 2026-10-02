@@ -57,10 +57,14 @@ class TestCheck:
         assert check(BASE, head) == []
 
     def test_an_entry_added_to_a_released_section_is_refused(self):
-        head = BASE.replace("- **A feature.** Details.\n", "- **A feature.** Details.\n- Late entry. (#14)\n")
+        head = BASE.replace(
+            "- **A feature.** Details.\n", "- **A feature.** Details.\n- Late entry. (#14)\n"
+        )
         problems = check(BASE, head)
         assert len(problems) == 1
-        assert problems[0].startswith("released section [0.5.0] gained 1 entry (- Late entry. (#14))")
+        assert problems[0].startswith(
+            "released section [0.5.0] gained 1 entry (- Late entry. (#14))"
+        )
         assert "move new entries under [Unreleased]" in problems[0]
 
     def test_wording_fixes_in_a_released_section_are_fine(self):
@@ -82,7 +86,10 @@ class TestCheck:
             "## [0.5.0]", "## [0.5.1] - 2026-09-15\n\n### Fixed\n\n- Hand-made. (#16)\n\n## [0.5.0]"
         )
         problems = check(BASE, head)
-        assert len(problems) == 1 and "section [0.5.1] is new but [Unreleased] still has 1 entry" in problems[0]
+        assert (
+            len(problems) == 1
+            and "section [0.5.1] is new but [Unreleased] still has 1 entry" in problems[0]
+        )
 
     def test_a_missing_unreleased_section_is_refused(self):
         head = BASE.replace("## [Unreleased]\n\n### Fixed\n\n- A bug. (#12)\n\n", "")
@@ -98,21 +105,32 @@ class TestCheck:
 class TestCommandLine:
     def _run(self, *args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(SCRIPT), *args], cwd=cwd, capture_output=True, text=True, timeout=60,
+            [sys.executable, str(SCRIPT), *args],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
 
     def test_files_and_exit_codes(self, tmp_path: Path):
         (tmp_path / "base.md").write_text(BASE)
-        (tmp_path / "CHANGELOG.md").write_text(BASE.replace("- A bug. (#12)\n", "- A bug. (#12)\n- New. (#1)\n"))
+        (tmp_path / "CHANGELOG.md").write_text(
+            BASE.replace("- A bug. (#12)\n", "- A bug. (#12)\n- New. (#1)\n")
+        )
         ok = self._run("--base-file", "base.md", cwd=tmp_path)
         assert ok.returncode == 0 and ok.stdout.startswith("ok: 2 entries under [Unreleased]")
         (tmp_path / "CHANGELOG.md").write_text(
             BASE.replace("- **A feature.** Details.\n", "- **A feature.** Details.\n- Late. (#2)\n")
         )
         bad = self._run("--base-file", "base.md", cwd=tmp_path)
-        assert bad.returncode == 1 and "error: released section [0.5.0] gained 1 entry" in bad.stderr
+        assert (
+            bad.returncode == 1 and "error: released section [0.5.0] gained 1 entry" in bad.stderr
+        )
         assert self._run("--base-file", "missing.md", cwd=tmp_path).returncode == 2
-        assert self._run("--base", "origin/main", "--head-file", "nope.md", cwd=tmp_path).returncode == 2
+        assert (
+            self._run("--base", "origin/main", "--head-file", "nope.md", cwd=tmp_path).returncode
+            == 2
+        )
 
     def test_base_from_a_git_ref(self, tmp_path: Path):
         env_git = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com"]

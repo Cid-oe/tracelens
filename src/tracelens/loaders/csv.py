@@ -52,9 +52,7 @@ def _validate_csv_header(path: Path, fieldnames: Sequence[str], input_field: str
     if blank_columns:
         raise ValueError(f"{path}: blank CSV column names are not allowed")
 
-    duplicate_columns = [
-        name for name, count in Counter(fieldnames).items() if count > 1
-    ]
+    duplicate_columns = [name for name, count in Counter(fieldnames).items() if count > 1]
     if duplicate_columns:
         names = ", ".join(repr(name) for name in duplicate_columns)
         raise ValueError(f"{path}: duplicate CSV column names: {names}")
