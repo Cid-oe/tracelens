@@ -53,8 +53,7 @@ class LatencyAnalyzer:
             return LatencyMetrics()
 
         token_events = [
-            e for e in transcript.streaming_events
-            if e.event_type == StreamingEventType.TOKEN
+            e for e in transcript.streaming_events if e.event_type == StreamingEventType.TOKEN
         ]
 
         if not token_events:
@@ -72,11 +71,7 @@ class LatencyAnalyzer:
         # excluding idle time before the first token arrived.
         generation_ms = time_to_complete_ms - first_token_ms
         generation_seconds = generation_ms / 1000.0
-        tokens_per_second = (
-            total_tokens / generation_seconds
-            if generation_seconds > 0
-            else None
-        )
+        tokens_per_second = total_tokens / generation_seconds if generation_seconds > 0 else None
 
         # Inter-token intervals
         inter_token_mean_ms: float | None = None
@@ -113,8 +108,7 @@ class LatencyAnalyzer:
 
         first_tokens = [m.first_token_ms for m in streaming if m.first_token_ms is not None]
         completions = [
-            m.time_to_complete_ms for m in streaming
-            if m.time_to_complete_ms is not None
+            m.time_to_complete_ms for m in streaming if m.time_to_complete_ms is not None
         ]
         tps_values = [m.tokens_per_second for m in streaming if m.tokens_per_second is not None]
 

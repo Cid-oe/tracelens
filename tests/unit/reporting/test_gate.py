@@ -40,10 +40,15 @@ def _trial(
 ) -> Trial:
     trial = Trial(task_id=task_id, run_index=run_index, status=status)
     if passed is not None:
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id, grader_id="g", passed=passed,
-            score=1.0 if passed else 0.0, grader_error=grader_error,
-        ))
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id="g",
+                passed=passed,
+                score=1.0 if passed else 0.0,
+                grader_error=grader_error,
+            )
+        )
     if spec is not None:
         trial.transcript = Transcript(task_id=task_id, final_output={}, decision_spec=spec)
     return trial
@@ -175,9 +180,7 @@ class TestEvaluateGate:
         baseline.decision_spec = DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=2048))
         manager.set_baseline(baseline)
         current = DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=512))
-        gate = evaluate_gate(
-            _batch(*_runs("t1", [True, True, True], spec=current)), manager
-        )
+        gate = evaluate_gate(_batch(*_runs("t1", [True, True, True], spec=current)), manager)
         task = gate.tasks[0]
         assert task.infra_config_mismatch
         assert task.infra_config_diff["memory_hard_limit_mb"] == (2048, 512)
@@ -209,7 +212,11 @@ class TestGateResultModel:
         baseline.decision_spec = DecisionSpec(infra=InfraConfig(cpu_hard_limit=2.0))
         manager.set_baseline(baseline)
         batch = _batch(
-            *_runs("t1", [False, False, False], spec=DecisionSpec(infra=InfraConfig(cpu_hard_limit=1.0))),
+            *_runs(
+                "t1",
+                [False, False, False],
+                spec=DecisionSpec(infra=InfraConfig(cpu_hard_limit=1.0)),
+            ),
             *_runs("t2", [True, True]),
             *_runs("t3", [True]),
         )
@@ -235,8 +242,12 @@ class TestHelpers:
         assert [r["pass_rate"] for r in results] == [1.0, 0.0]  # pass, timeout-as-failure
 
     def test_spec_from_trials_prefers_latest_and_reports_mix(self):
-        old = _trial("t", True, run_index=0, spec=DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=2048)))
-        new = _trial("t", True, run_index=1, spec=DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=512)))
+        old = _trial(
+            "t", True, run_index=0, spec=DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=2048))
+        )
+        new = _trial(
+            "t", True, run_index=1, spec=DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=512))
+        )
         spec, warning = spec_from_trials([old, new])
         assert spec is not None and spec.infra is not None
         assert spec.infra.memory_hard_limit_mb == 512
@@ -295,10 +306,7 @@ class TestTaskContentIdentity:
             "(aaaaaaaaaaaa -> bbbbbbbbbbbb); re-store the baseline for this task"
         )
         assert gate.skipped_task_content_changed == 1 and gate.checked == 0
-        assert (
-            "1 task(s) whose content changed since their baseline was stored: t1"
-            in gate.reasons
-        )
+        assert "1 task(s) whose content changed since their baseline was stored: t1" in gate.reasons
         assert "1 skipped (task content changed)" in gate.summary_line()
 
     def test_matching_content_is_compared_normally(self, tmp_path):

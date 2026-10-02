@@ -1,6 +1,5 @@
 """Tests for trial module."""
 
-
 import pytest
 
 from tracelens.core.outcome import Outcome
@@ -61,21 +60,25 @@ class TestTrial:
         assert trial.passed is False
 
         # Add passing outcome
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id,
-            grader_id="g1",
-            passed=True,
-            score=0.9,
-        ))
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id="g1",
+                passed=True,
+                score=0.9,
+            )
+        )
         assert trial.passed is True
 
         # Add failing outcome = not passed (all must pass)
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id,
-            grader_id="g2",
-            passed=False,
-            score=0.4,
-        ))
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id="g2",
+                passed=False,
+                score=0.4,
+            )
+        )
         assert trial.passed is False
 
     def test_trial_aggregate_score(self):
@@ -84,18 +87,22 @@ class TestTrial:
 
         assert trial.aggregate_score is None
 
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id,
-            grader_id="g1",
-            passed=True,
-            score=0.9,
-        ))
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id,
-            grader_id="g2",
-            passed=True,
-            score=0.7,
-        ))
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id="g1",
+                passed=True,
+                score=0.9,
+            )
+        )
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id="g2",
+                passed=True,
+                score=0.7,
+            )
+        )
 
         assert trial.aggregate_score == pytest.approx(0.8, rel=0.01)
 
@@ -188,6 +195,14 @@ class TestTrial:
         assert ci_dict["run"] == "1/5"
         assert ci_dict["passed"] is True
 
+    def test_trial_to_ci_dict_zero_score(self):
+        """Issue #139: Trial.to_ci_dict reports a legitimate score of 0.0 as 0.0, not None."""
+        trial = Trial(task_id="zero-task", run_index=0, total_runs=1)
+        trial.add_outcome(Outcome(trial_id=trial.trial_id, grader_id="g1", passed=False, score=0.0))
+        assert trial.aggregate_score == 0.0
+        ci_dict = trial.to_ci_dict()
+        assert ci_dict["score"] == 0.0
+
 
 class TestTrialBatch:
     """Tests for TrialBatch model."""
@@ -209,18 +224,22 @@ class TestTrialBatch:
         ]
 
         # Add passing outcomes to first two
-        trials[0].add_outcome(Outcome(
-            trial_id=trials[0].trial_id,
-            grader_id="g1",
-            passed=True,
-            score=0.9,
-        ))
-        trials[1].add_outcome(Outcome(
-            trial_id=trials[1].trial_id,
-            grader_id="g1",
-            passed=False,
-            score=0.4,
-        ))
+        trials[0].add_outcome(
+            Outcome(
+                trial_id=trials[0].trial_id,
+                grader_id="g1",
+                passed=True,
+                score=0.9,
+            )
+        )
+        trials[1].add_outcome(
+            Outcome(
+                trial_id=trials[1].trial_id,
+                grader_id="g1",
+                passed=False,
+                score=0.4,
+            )
+        )
 
         batch = TrialBatch(trials=trials)
 
@@ -257,24 +276,30 @@ class TestTrialBatch:
         ]
 
         # Add outcomes
-        trials[0].add_outcome(Outcome(
-            trial_id=trials[0].trial_id,
-            grader_id="g1",
-            passed=True,
-            score=0.9,
-        ))
-        trials[1].add_outcome(Outcome(
-            trial_id=trials[1].trial_id,
-            grader_id="g1",
-            passed=False,
-            score=0.4,
-        ))
-        trials[2].add_outcome(Outcome(
-            trial_id=trials[2].trial_id,
-            grader_id="g1",
-            passed=True,
-            score=0.8,
-        ))
+        trials[0].add_outcome(
+            Outcome(
+                trial_id=trials[0].trial_id,
+                grader_id="g1",
+                passed=True,
+                score=0.9,
+            )
+        )
+        trials[1].add_outcome(
+            Outcome(
+                trial_id=trials[1].trial_id,
+                grader_id="g1",
+                passed=False,
+                score=0.4,
+            )
+        )
+        trials[2].add_outcome(
+            Outcome(
+                trial_id=trials[2].trial_id,
+                grader_id="g1",
+                passed=True,
+                score=0.8,
+            )
+        )
 
         batch = TrialBatch(trials=trials)
         results = batch.get_pass_results_by_task()
@@ -348,22 +373,26 @@ class TestTrialBatchRunOrder:
     @staticmethod
     def _trial(task_id: str, run_index: int, passed: bool) -> Trial:
         trial = Trial(task_id=task_id, run_index=run_index, status=TrialStatus.COMPLETED)
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id,
-            grader_id="g",
-            passed=passed,
-            score=1.0 if passed else 0.0,
-        ))
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id="g",
+                passed=passed,
+                score=1.0 if passed else 0.0,
+            )
+        )
         return trial
 
     def test_pass_results_follow_run_index_not_completion_order(self):
         # run_index outcomes 0=T, 1=T, 2=F, 3=F, appended in completion order 0, 2, 3, 1
-        batch = TrialBatch(trials=[
-            self._trial("a", 0, True),
-            self._trial("a", 2, False),
-            self._trial("a", 3, False),
-            self._trial("a", 1, True),
-        ])
+        batch = TrialBatch(
+            trials=[
+                self._trial("a", 0, True),
+                self._trial("a", 2, False),
+                self._trial("a", 3, False),
+                self._trial("a", 1, True),
+            ]
+        )
         assert batch.get_pass_results_by_task() == {"a": [True, True, False, False]}
         assert batch.get_pass_sequences_by_task() == {"a": [True, True, False, False]}
 
@@ -386,11 +415,13 @@ class TestTrialBatchRunOrder:
             batch.get_pass_sequences_by_task()
 
     def test_tasks_are_independent(self):
-        batch = TrialBatch(trials=[
-            self._trial("b", 1, False),
-            self._trial("a", 0, True),
-            self._trial("b", 0, True),
-        ])
+        batch = TrialBatch(
+            trials=[
+                self._trial("b", 1, False),
+                self._trial("a", 0, True),
+                self._trial("b", 0, True),
+            ]
+        )
         assert batch.get_pass_results_by_task() == {"b": [True, False], "a": [True]}
 
 
@@ -401,18 +432,25 @@ class TestGradableTrials:
     def _trial(task_id, run_index, status, passed=None, grader_error=False):
         trial = Trial(task_id=task_id, run_index=run_index, status=status)
         if passed is not None:
-            trial.add_outcome(Outcome(
-                trial_id=trial.trial_id, grader_id="g", passed=passed,
-                score=1.0 if passed else 0.0, grader_error=grader_error,
-            ))
+            trial.add_outcome(
+                Outcome(
+                    trial_id=trial.trial_id,
+                    grader_id="g",
+                    passed=passed,
+                    score=1.0 if passed else 0.0,
+                    grader_error=grader_error,
+                )
+            )
         return trial
 
     def test_is_gradable_by_status(self):
         for status in (TrialStatus.COMPLETED, TrialStatus.FAILED, TrialStatus.TIMEOUT):
             assert self._trial("a", 0, status).is_gradable, status
         for status in (
-            TrialStatus.INFRA_ERROR, TrialStatus.SKIPPED,
-            TrialStatus.PENDING, TrialStatus.RUNNING,
+            TrialStatus.INFRA_ERROR,
+            TrialStatus.SKIPPED,
+            TrialStatus.PENDING,
+            TrialStatus.RUNNING,
         ):
             assert not self._trial("a", 0, status).is_gradable, status
 
@@ -421,15 +459,17 @@ class TestGradableTrials:
         assert crashed.has_grader_error and not crashed.is_gradable
 
     def test_harness_failures_leave_the_denominator_and_become_gaps(self):
-        batch = TrialBatch(trials=[
-            self._trial("a", 0, TrialStatus.COMPLETED, passed=True),
-            self._trial("a", 1, TrialStatus.INFRA_ERROR),
-            self._trial("a", 2, TrialStatus.COMPLETED, passed=False, grader_error=True),
-            self._trial("a", 3, TrialStatus.TIMEOUT),
-            self._trial("b", 0, TrialStatus.SKIPPED),
-        ])
+        batch = TrialBatch(
+            trials=[
+                self._trial("a", 0, TrialStatus.COMPLETED, passed=True),
+                self._trial("a", 1, TrialStatus.INFRA_ERROR),
+                self._trial("a", 2, TrialStatus.COMPLETED, passed=False, grader_error=True),
+                self._trial("a", 3, TrialStatus.TIMEOUT),
+                self._trial("b", 0, TrialStatus.SKIPPED),
+            ]
+        )
         assert batch.total_count == 5
-        assert batch.gradable_count == 2          # a0 (pass) and a3 (timeout = failure)
+        assert batch.gradable_count == 2  # a0 (pass) and a3 (timeout = failure)
         assert batch.excluded_count == 3
         assert batch.passed_count == 1
         assert batch.pass_rate == 0.5

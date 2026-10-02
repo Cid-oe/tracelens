@@ -128,18 +128,24 @@ class TestCompositeGraderPolicy:
         composite = CompositeGrader(
             grader_id="composite",
             graders=[
-                (SimpleScoreGrader(
-                    "safety",
-                    score=0.3,
-                    passed=False,
-                    config=GraderConfig(policy=EvalPolicy.GATE),
-                ), 0.2),
-                (SimpleScoreGrader(
-                    "quality",
-                    score=0.95,
-                    passed=True,
-                    config=GraderConfig(policy=EvalPolicy.TRACK),
-                ), 0.8),
+                (
+                    SimpleScoreGrader(
+                        "safety",
+                        score=0.3,
+                        passed=False,
+                        config=GraderConfig(policy=EvalPolicy.GATE),
+                    ),
+                    0.2,
+                ),
+                (
+                    SimpleScoreGrader(
+                        "quality",
+                        score=0.95,
+                        passed=True,
+                        config=GraderConfig(policy=EvalPolicy.TRACK),
+                    ),
+                    0.8,
+                ),
             ],
         )
 
@@ -147,25 +153,29 @@ class TestCompositeGraderPolicy:
         assert outcome.passed is False
 
     @pytest.mark.asyncio
-    async def test_warn_failure_doesnt_fail_overall(
-        self, sample_task, sample_transcript
-    ) -> None:
+    async def test_warn_failure_doesnt_fail_overall(self, sample_task, sample_transcript) -> None:
         """Warn grader failure doesn't fail overall (by default)."""
         composite = CompositeGrader(
             grader_id="composite",
             graders=[
-                (SimpleScoreGrader(
-                    "latency",
-                    score=0.3,
-                    passed=False,
-                    config=GraderConfig(policy=EvalPolicy.WARN),
-                ), 0.5),
-                (SimpleScoreGrader(
-                    "quality",
-                    score=0.9,
-                    passed=True,
-                    config=GraderConfig(policy=EvalPolicy.TRACK),
-                ), 0.5),
+                (
+                    SimpleScoreGrader(
+                        "latency",
+                        score=0.3,
+                        passed=False,
+                        config=GraderConfig(policy=EvalPolicy.WARN),
+                    ),
+                    0.5,
+                ),
+                (
+                    SimpleScoreGrader(
+                        "quality",
+                        score=0.9,
+                        passed=True,
+                        config=GraderConfig(policy=EvalPolicy.TRACK),
+                    ),
+                    0.5,
+                ),
             ],
         )
 
@@ -174,19 +184,20 @@ class TestCompositeGraderPolicy:
         assert outcome.passed is True
 
     @pytest.mark.asyncio
-    async def test_track_failure_doesnt_fail_overall(
-        self, sample_task, sample_transcript
-    ) -> None:
+    async def test_track_failure_doesnt_fail_overall(self, sample_task, sample_transcript) -> None:
         """Track grader failure never fails overall."""
         composite = CompositeGrader(
             grader_id="composite",
             graders=[
-                (SimpleScoreGrader(
-                    "clarity",
-                    score=0.2,
-                    passed=False,
-                    config=GraderConfig(policy=EvalPolicy.TRACK),
-                ), 1.0),
+                (
+                    SimpleScoreGrader(
+                        "clarity",
+                        score=0.2,
+                        passed=False,
+                        config=GraderConfig(policy=EvalPolicy.TRACK),
+                    ),
+                    1.0,
+                ),
             ],
         )
 
@@ -198,18 +209,33 @@ class TestCompositeGraderPolicy:
         composite = CompositeGrader(
             grader_id="composite",
             graders=[
-                (SimpleScoreGrader(
-                    "safety", score=1.0, passed=True,
-                    config=GraderConfig(policy=EvalPolicy.GATE),
-                ), 0.3),
-                (SimpleScoreGrader(
-                    "latency", score=0.8, passed=True,
-                    config=GraderConfig(policy=EvalPolicy.WARN),
-                ), 0.3),
-                (SimpleScoreGrader(
-                    "quality", score=0.8, passed=True,
-                    config=GraderConfig(policy=EvalPolicy.TRACK),
-                ), 0.4),
+                (
+                    SimpleScoreGrader(
+                        "safety",
+                        score=1.0,
+                        passed=True,
+                        config=GraderConfig(policy=EvalPolicy.GATE),
+                    ),
+                    0.3,
+                ),
+                (
+                    SimpleScoreGrader(
+                        "latency",
+                        score=0.8,
+                        passed=True,
+                        config=GraderConfig(policy=EvalPolicy.WARN),
+                    ),
+                    0.3,
+                ),
+                (
+                    SimpleScoreGrader(
+                        "quality",
+                        score=0.8,
+                        passed=True,
+                        config=GraderConfig(policy=EvalPolicy.TRACK),
+                    ),
+                    0.4,
+                ),
             ],
         )
 

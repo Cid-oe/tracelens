@@ -48,9 +48,7 @@ def split_unreleased(changelog: str) -> tuple[str, str, str]:
     start = next((i for i, line in enumerate(lines) if line.rstrip() == UNRELEASED), None)
     if start is None:
         raise ReleaseError("CHANGELOG.md has no '## [Unreleased]' section")
-    end = next(
-        (i for i in range(start + 1, len(lines)) if SECTION.match(lines[i])), len(lines)
-    )
+    end = next((i for i in range(start + 1, len(lines)) if SECTION.match(lines[i])), len(lines))
     return "".join(lines[: start + 1]), "".join(lines[start + 1 : end]), "".join(lines[end:])
 
 

@@ -98,12 +98,15 @@ class TestAggregatedOutcome:
     def test_from_outcomes(self):
         """Test aggregation of outcomes."""
         outcomes = [
-            Outcome(trial_id="t1", grader_id="g1", passed=True, score=0.9,
-                    metrics={"quality": 0.9}),
-            Outcome(trial_id="t2", grader_id="g1", passed=True, score=0.8,
-                    metrics={"quality": 0.8}),
-            Outcome(trial_id="t3", grader_id="g1", passed=False, score=0.4,
-                    metrics={"quality": 0.4}),
+            Outcome(
+                trial_id="t1", grader_id="g1", passed=True, score=0.9, metrics={"quality": 0.9}
+            ),
+            Outcome(
+                trial_id="t2", grader_id="g1", passed=True, score=0.8, metrics={"quality": 0.8}
+            ),
+            Outcome(
+                trial_id="t3", grader_id="g1", passed=False, score=0.4, metrics={"quality": 0.4}
+            ),
         ]
 
         agg = AggregatedOutcome.from_outcomes(outcomes)
