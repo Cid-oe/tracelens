@@ -484,7 +484,8 @@ class RunComparison(BaseModel):
             )
             more = len(moved) - top
             lines.append(
-                "  What moved (largest first): " + movers
+                "  What moved (largest first): "
+                + movers
                 + (f", and {more} more" if more > 0 else "")
             )
         for note in self.notes:
@@ -606,7 +607,8 @@ def compare_runs(
         only_a = sorted(a_ids - b_ids)
         only_b = sorted(b_ids - a_ids)
         notes.append(
-            "compatibility unknown (" + "; ".join(compat.reasons)
+            "compatibility unknown ("
+            + "; ".join(compat.reasons)
             + "); tasks aligned by id only, so a task edited between the runs "
             "would not be detected"
         )
@@ -632,7 +634,8 @@ def compare_runs(
         if only_b:
             problems.append(f"{len(only_b)} only in candidate ({_list_ids(only_b)})")
         raise ComparisonError(
-            "task sets differ: " + "; ".join(problems)
+            "task sets differ: "
+            + "; ".join(problems)
             + f"; pass --unmatched-tasks exclude to compare the {len(same)} shared "
             "task(s) and list the rest"
         )

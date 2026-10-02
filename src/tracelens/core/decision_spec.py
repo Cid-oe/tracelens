@@ -29,12 +29,8 @@ class ModelConfig(BaseModel):
     that could affect output.
     """
 
-    provider: str = Field(
-        description="Model provider (e.g., 'anthropic', 'openai', 'google')"
-    )
-    model_id: str = Field(
-        description="Model identifier (e.g., 'claude-3-opus-20240229')"
-    )
+    provider: str = Field(description="Model provider (e.g., 'anthropic', 'openai', 'google')")
+    model_id: str = Field(description="Model identifier (e.g., 'claude-3-opus-20240229')")
     model_version: str | None = Field(
         default=None,
         description="Specific version or snapshot if available",
@@ -314,8 +310,7 @@ class InfraConfig(BaseModel):
     runtime_platform: str | None = Field(
         default=None,
         description=(
-            "Container / runtime platform "
-            "(e.g. 'kubernetes', 'docker', 'local', 'fly.io')."
+            "Container / runtime platform (e.g. 'kubernetes', 'docker', 'local', 'fly.io')."
         ),
     )
     sandbox_provider: str | None = Field(
@@ -468,8 +463,12 @@ class DecisionSpec(BaseModel):
         not capture.
         """
         hash_data = self._to_hash_dict()
-        # Serialize deterministically (sorted keys)
-        serialized = json.dumps(hash_data, sort_keys=True, default=str)
+        from typing import Any
+
+        from pydantic import TypeAdapter
+
+        dumped = TypeAdapter(dict[str, Any]).dump_python(hash_data, mode="json")
+        serialized = json.dumps(dumped, sort_keys=True)
         return hashlib.sha256(serialized.encode()).hexdigest()
 
     @computed_field  # type: ignore[prop-decorator]

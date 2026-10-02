@@ -72,9 +72,6 @@ class Task(BaseModel):
     difficulty: str | None = None  # "easy", "medium", "hard"
     category: str | None = None
 
-    # Execution configuration
-    timeout_seconds: float = 300.0
-
     def matches_filter(
         self,
         tags: list[str] | None = None,
@@ -191,7 +188,6 @@ class EvalSet(BaseModel):
 
     # Configuration
     default_num_runs: int = 1  # For pass@k
-    default_timeout_seconds: float = 300.0
 
     def filter_tasks(
         self,
@@ -202,7 +198,8 @@ class EvalSet(BaseModel):
     ) -> list[Task]:
         """Filter tasks by criteria."""
         filtered = [
-            t for t in self.tasks
+            t
+            for t in self.tasks
             if t.matches_filter(tags=tags, categories=categories, difficulties=difficulties)
         ]
         if max_tasks:
@@ -218,8 +215,10 @@ class EvalSet(BaseModel):
     ) -> "EvalSet":
         """Return a new EvalSet with only tasks matching the filter criteria."""
         filtered = self.filter_tasks(
-            tags=tags, categories=categories,
-            difficulties=difficulties, max_tasks=max_tasks,
+            tags=tags,
+            categories=categories,
+            difficulties=difficulties,
+            max_tasks=max_tasks,
         )
         return EvalSet(
             name=self.name,
@@ -227,7 +226,6 @@ class EvalSet(BaseModel):
             default_grader_ids=self.default_grader_ids,
             metadata=self.metadata,
             default_num_runs=self.default_num_runs,
-            default_timeout_seconds=self.default_timeout_seconds,
         )
 
     def add_task(self, task: Task) -> None:

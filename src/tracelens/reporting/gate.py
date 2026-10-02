@@ -125,12 +125,12 @@ def per_trial_results(trials: Sequence[Trial]) -> list[dict[str, float]]:
     for trial in trials:
         if not trial.is_gradable:
             continue
-        results.append({
-            "pass_rate": 1.0 if trial.passed else 0.0,
-            "mean_score": (
-                trial.aggregate_score if trial.aggregate_score is not None else 0.0
-            ),
-        })
+        results.append(
+            {
+                "pass_rate": 1.0 if trial.passed else 0.0,
+                "mean_score": (trial.aggregate_score if trial.aggregate_score is not None else 0.0),
+            }
+        )
     return results
 
 
@@ -247,12 +247,8 @@ class TaskGateResult:
             overall_severity=RegressionSeverity(data.get("overall_severity", "none")),
             infra_config_mismatch=bool(data.get("infra_config_mismatch", False)),
             infra_config_diff=_diff_from_json(data.get("infra_config_diff", {})),
-            regressions=[
-                MetricRegression.model_validate(r) for r in data.get("regressions", [])
-            ],
-            improvements=[
-                MetricRegression.model_validate(r) for r in data.get("improvements", [])
-            ],
+            regressions=[MetricRegression.model_validate(r) for r in data.get("regressions", [])],
+            improvements=[MetricRegression.model_validate(r) for r in data.get("improvements", [])],
             detectable=None if detectable is None else bool(detectable),
             trials_needed=None if trials_needed is None else int(trials_needed),
         )
@@ -425,7 +421,8 @@ class GateResult:
     def underpowered_tasks(self) -> list[TaskGateResult]:
         """Checked tasks with an observed drop the evidence could not confirm."""
         return [
-            t for t in self.tasks
+            t
+            for t in self.tasks
             if t.outcome is TaskGateOutcome.CHECKED and t.underpowered_regressions
         ]
 
@@ -448,8 +445,7 @@ class GateResult:
         )
         if self.multiplicity == "holm":
             return (
-                f"{share}, Holm-adjusted across {self.family_size} "
-                "compared (task, metric) test(s)"
+                f"{share}, Holm-adjusted across {self.family_size} compared (task, metric) test(s)"
             )
         return f"{share} per test, no multiplicity correction"
 
@@ -462,13 +458,9 @@ class GateResult:
         if self.skipped_no_gradable:
             parts.append(f"{self.skipped_no_gradable} skipped (no gradable trials)")
         if self.skipped_no_comparable_metrics:
-            parts.append(
-                f"{self.skipped_no_comparable_metrics} skipped (no comparable metrics)"
-            )
+            parts.append(f"{self.skipped_no_comparable_metrics} skipped (no comparable metrics)")
         if self.skipped_task_content_changed:
-            parts.append(
-                f"{self.skipped_task_content_changed} skipped (task content changed)"
-            )
+            parts.append(f"{self.skipped_task_content_changed} skipped (task content changed)")
         parts.append(f"{self.blocking_regressions} blocking regression(s)")
         underpowered = sum(len(t.underpowered_regressions) for t in self.underpowered_tasks)
         if underpowered:
@@ -656,35 +648,47 @@ def _suite_results(
         is_regression = delta < 0 and abs(delta_percent) >= min_delta_percent
         severity = severity_for(delta_percent) if is_regression else RegressionSeverity.NONE
         within_noise = is_regression and any_infra_mismatch and abs(delta) < noise_band
-        draft.append({
-            "metric_name": metric, "tasks": len(pairs),
-            "baseline_mean": baseline_mean, "current_mean": current_mean,
-            "delta": delta, "delta_percent": delta_percent,
-            "ci_lower": effect.ci_lower, "ci_upper": effect.ci_upper,
-            "p_value": p_one, "p_value_exact": effect.p_value_exact,
-            "confidence": effect.confidence, "n_bootstrap": effect.n_bootstrap,
-            "seed": effect.seed, "severity": severity,
-            "is_regression": is_regression, "within_noise_band": within_noise,
-        })
-    adjusted = holm_adjusted([
-        1.0 if d["p_value"] is None else float(d["p_value"]) for d in draft
-    ])
+        draft.append(
+            {
+                "metric_name": metric,
+                "tasks": len(pairs),
+                "baseline_mean": baseline_mean,
+                "current_mean": current_mean,
+                "delta": delta,
+                "delta_percent": delta_percent,
+                "ci_lower": effect.ci_lower,
+                "ci_upper": effect.ci_upper,
+                "p_value": p_one,
+                "p_value_exact": effect.p_value_exact,
+                "confidence": effect.confidence,
+                "n_bootstrap": effect.n_bootstrap,
+                "seed": effect.seed,
+                "severity": severity,
+                "is_regression": is_regression,
+                "within_noise_band": within_noise,
+            }
+        )
+    adjusted = holm_adjusted([1.0 if d["p_value"] is None else float(d["p_value"]) for d in draft])
     results: list[SuiteGateResult] = []
     for entry, adj in zip(draft, adjusted, strict=True):
-        is_significant = bool(entry["is_regression"]) and entry["p_value"] is not None and adj <= alpha
+        is_significant = (
+            bool(entry["is_regression"]) and entry["p_value"] is not None and adj <= alpha
+        )
         blocking = (
             blocking_enabled
             and is_significant
             and not entry["within_noise_band"]
             and severity_at_least(entry["severity"], threshold)
         )
-        results.append(SuiteGateResult(
-            **entry,
-            p_value_adjusted=None if entry["p_value"] is None else adj,
-            is_significant=is_significant,
-            blocking=blocking,
-            blocking_enabled=blocking_enabled,
-        ))
+        results.append(
+            SuiteGateResult(
+                **entry,
+                p_value_adjusted=None if entry["p_value"] is None else adj,
+                is_significant=is_significant,
+                blocking=blocking,
+                blocking_enabled=blocking_enabled,
+            )
+        )
     return results
 
 
@@ -772,50 +776,58 @@ def evaluate_gate(
         current_results = per_trial_results(task_trials)
         excluded = len(task_trials) - len(current_results)
         if baseline is None:
-            tasks.append(TaskGateResult(
-                task_id=task_id,
-                outcome=TaskGateOutcome.NO_BASELINE,
-                reason="no baseline stored for this task",
-                compared_trials=0,
-                excluded_trials=excluded,
-            ))
+            tasks.append(
+                TaskGateResult(
+                    task_id=task_id,
+                    outcome=TaskGateOutcome.NO_BASELINE,
+                    reason="no baseline stored for this task",
+                    compared_trials=0,
+                    excluded_trials=excluded,
+                )
+            )
             continue
         current_hash = task_hashes.get(task_id)
         if baseline.task_hash and current_hash and baseline.task_hash != current_hash:
-            tasks.append(TaskGateResult(
-                task_id=task_id,
-                outcome=TaskGateOutcome.TASK_CONTENT_CHANGED,
-                reason=(
-                    "task content changed since the baseline was stored "
-                    f"({short_hash(baseline.task_hash)} -> {short_hash(current_hash)}); "
-                    "re-store the baseline for this task"
-                ),
-                excluded_trials=excluded,
-            ))
+            tasks.append(
+                TaskGateResult(
+                    task_id=task_id,
+                    outcome=TaskGateOutcome.TASK_CONTENT_CHANGED,
+                    reason=(
+                        "task content changed since the baseline was stored "
+                        f"({short_hash(baseline.task_hash)} -> {short_hash(current_hash)}); "
+                        "re-store the baseline for this task"
+                    ),
+                    excluded_trials=excluded,
+                )
+            )
             continue
         if current_hash and not baseline.task_hash:
             unhashed_baselines.append(task_id)
         if not current_results:
-            tasks.append(TaskGateResult(
-                task_id=task_id,
-                outcome=TaskGateOutcome.NO_GRADABLE_TRIALS,
-                reason="no gradable trials (all infra/grader failures)",
-                excluded_trials=excluded,
-            ))
+            tasks.append(
+                TaskGateResult(
+                    task_id=task_id,
+                    outcome=TaskGateOutcome.NO_GRADABLE_TRIALS,
+                    reason="no gradable trials (all infra/grader failures)",
+                    excluded_trials=excluded,
+                )
+            )
             continue
         current_metrics = sorted({name for result in current_results for name in result})
         if not baseline.metrics.keys() & set(current_metrics):
-            tasks.append(TaskGateResult(
-                task_id=task_id,
-                outcome=TaskGateOutcome.NO_COMPARABLE_METRICS,
-                reason=(
-                    "baseline shares no metric with the CLI metrics "
-                    f"({', '.join(current_metrics)})"
-                ),
-                compared_trials=len(current_results),
-                excluded_trials=excluded,
-                available_metrics=current_metrics,
-            ))
+            tasks.append(
+                TaskGateResult(
+                    task_id=task_id,
+                    outcome=TaskGateOutcome.NO_COMPARABLE_METRICS,
+                    reason=(
+                        "baseline shares no metric with the CLI metrics "
+                        f"({', '.join(current_metrics)})"
+                    ),
+                    compared_trials=len(current_results),
+                    excluded_trials=excluded,
+                    available_metrics=current_metrics,
+                )
+            )
             continue
         current_spec = decision_spec
         if current_spec is None:
@@ -837,34 +849,32 @@ def evaluate_gate(
                 (float(metric_baseline.baseline_value), sum(values) / len(values))
             )
         checked_inputs[task_id] = (baseline, current_results)
-        tasks.append(TaskGateResult(
-            task_id=task_id,
-            outcome=TaskGateOutcome.CHECKED,
-            compared_trials=len(current_results),
-            excluded_trials=excluded,
-            available_metrics=current_metrics,
-            compared_metrics=[m for m in current_metrics if m in baseline.metrics],
-            infra_config_mismatch=report.infra_config_mismatch,
-            infra_config_diff=dict(report.infra_config_diff),
-            regressions=list(report.regressions),
-            improvements=list(report.improvements),
-        ))
+        tasks.append(
+            TaskGateResult(
+                task_id=task_id,
+                outcome=TaskGateOutcome.CHECKED,
+                compared_trials=len(current_results),
+                excluded_trials=excluded,
+                available_metrics=current_metrics,
+                compared_metrics=[m for m in current_metrics if m in baseline.metrics],
+                infra_config_mismatch=report.infra_config_mismatch,
+                infra_config_diff=dict(report.infra_config_diff),
+                regressions=list(report.regressions),
+                improvements=list(report.improvements),
+            )
+        )
 
     # Split the budget only when the suite criterion can really take a share:
     # it needs at least two checked tasks carrying the same metric, and
     # charging the per-task family half the level for a criterion that never
     # forms would halve the run's sensitivity for nothing.
-    suite_is_live = suite_blocking and any(
-        len(pairs) >= 2 for pairs in per_task_means.values()
-    )
+    suite_is_live = suite_blocking and any(len(pairs) >= 2 for pairs in per_task_means.values())
     task_alpha = alpha / 2 if suite_is_live else alpha
     suite_alpha = alpha / 2 if suite_is_live else alpha
 
     # Run-level policy: adjust for multiplicity, then decide each task from
     # its significant findings and record what its sample sizes can show.
-    levels = _apply_multiplicity(
-        tasks, detector, alpha=task_alpha, multiplicity=multiplicity
-    )
+    levels = _apply_multiplicity(tasks, detector, alpha=task_alpha, multiplicity=multiplicity)
     checked = [t for t in tasks if t.outcome is TaskGateOutcome.CHECKED]
     thin_baselines: set[str] = set()
     # One family over every (task, metric) pair the run compared.
@@ -912,9 +922,7 @@ def evaluate_gate(
     no_baseline = [t for t in tasks if t.outcome is TaskGateOutcome.NO_BASELINE]
     no_gradable = [t for t in tasks if t.outcome is TaskGateOutcome.NO_GRADABLE_TRIALS]
     no_comparable = [t for t in tasks if t.outcome is TaskGateOutcome.NO_COMPARABLE_METRICS]
-    content_changed = [
-        t for t in tasks if t.outcome is TaskGateOutcome.TASK_CONTENT_CHANGED
-    ]
+    content_changed = [t for t in tasks if t.outcome is TaskGateOutcome.TASK_CONTENT_CHANGED]
     blocking = [t for t in checked if t.blocking]
     blocking_suite = [s for s in suite if s.blocking]
     undetectable = [t for t in checked if not t.detectable]
@@ -931,12 +939,13 @@ def evaluate_gate(
     # six tasks storing two metrics each, every one of them collapsing from
     # 4/4 to 0/4, reported `passed` and exit 0.
     suite_can_reject = suite_blocking and any(
-        len(suite) * 2.0 ** -s.tasks <= suite_alpha for s in suite
+        len(suite) * 2.0**-s.tasks <= suite_alpha for s in suite
     )
     if unhashed_baselines:
         warnings.append(
             f"{len(unhashed_baselines)} baseline(s) carry no task_hash, so a change to "
-            "their task content cannot be detected: " + ", ".join(unhashed_baselines)
+            "their task content cannot be detected: "
+            + ", ".join(unhashed_baselines)
             + "; re-store them from a results file that records provenance"
         )
     if undetectable and len(undetectable) < len(checked):
@@ -947,7 +956,8 @@ def evaluate_gate(
         warnings.append(
             f"{len(undetectable)} checked task(s) have too few trials to block on their "
             f"own at {per_test_level:.4g} per test: "
-            + ", ".join(t.task_id for t in undetectable) + advice
+            + ", ".join(t.task_id for t in undetectable)
+            + advice
         )
 
     reasons: list[str] = []
@@ -978,9 +988,7 @@ def evaluate_gate(
             )
         if checked and undetectable and len(undetectable) == len(checked) and not suite_can_reject:
             needed = [t.trials_needed for t in undetectable if t.trials_needed is not None]
-            advice = _thin_advice(
-                needed, [t.task_id for t in undetectable], thin_baselines
-            )
+            advice = _thin_advice(needed, [t.task_id for t in undetectable], thin_baselines)
             reasons.append(
                 "no checked task has enough trials to detect even a total failure "
                 f"({per_test_level:.4g} per test over {family_size} compared "
@@ -1000,9 +1008,7 @@ def evaluate_gate(
             reasons.append(
                 f"{len(blocking)} blocking regression(s) at threshold "
                 f"'{threshold.value}': "
-                + ", ".join(
-                    f"{t.task_id} ({t.overall_severity.value})" for t in blocking
-                )
+                + ", ".join(f"{t.task_id} ({t.overall_severity.value})" for t in blocking)
             )
         if blocking_suite:
             status = GateStatus.BLOCKED
@@ -1019,7 +1025,8 @@ def evaluate_gate(
             if underpowered:
                 reasons.append(
                     f"{len(underpowered)} task(s) show a drop the evidence could not "
-                    "confirm: " + ", ".join(t.task_id for t in underpowered)
+                    "confirm: "
+                    + ", ".join(t.task_id for t in underpowered)
                     + "; see their notes for the trials needed"
                 )
 

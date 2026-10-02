@@ -191,7 +191,6 @@ class RunnerSettings(BaseModel):
 
     num_runs: int
     max_concurrency: int
-    timeout_seconds: float
     max_infra_retries: int
     infra_exception_types: list[str] = Field(default_factory=list)
 
@@ -200,7 +199,6 @@ class RunnerSettings(BaseModel):
         return cls(
             num_runs=config.num_runs,
             max_concurrency=config.max_concurrency,
-            timeout_seconds=config.timeout_seconds,
             max_infra_retries=config.max_infra_retries,
             infra_exception_types=[
                 f"{t.__module__}.{t.__qualname__}" for t in config.infra_exception_types
@@ -260,7 +258,6 @@ class RunProvenance(BaseModel):
             "Graders: " + (", ".join(g.describe() for g in m.graders) or "none"),
             (
                 f"Runner: {m.runner.num_runs} run(s) per task, "
-                f"timeout {m.runner.timeout_seconds:g}s, "
                 f"{m.runner.max_infra_retries} infra retries"
             ),
             f"Adapter: {c.adapter.describe()}",
@@ -271,9 +268,7 @@ class RunProvenance(BaseModel):
             ),
         ]
         if self.started_at and self.completed_at:
-            lines.append(
-                f"Ran: {self.started_at.isoformat()} to {self.completed_at.isoformat()}"
-            )
+            lines.append(f"Ran: {self.started_at.isoformat()} to {self.completed_at.isoformat()}")
         return lines
 
 
@@ -295,10 +290,7 @@ def build_provenance(
             eval_set_name=eval_set.name,
             eval_set_hash=eval_set_hash(eval_set),
             task_hashes={t.task_id: task_content_hash(t) for t in eval_set.tasks},
-            graders=[
-                ComponentIdentity.of(g, name=getattr(g, "grader_id", None))
-                for g in graders
-            ],
+            graders=[ComponentIdentity.of(g, name=getattr(g, "grader_id", None)) for g in graders],
             runner=settings,
         ),
         candidate=CandidateSpec(
@@ -364,9 +356,7 @@ class CompatibilityReport(BaseModel):
 
     def summary_line(self) -> str:
         if self.status is not Compatibility.COMPATIBLE:
-            return f"Measurement compatibility: {self.status.value}; " + "; ".join(
-                self.reasons
-            )
+            return f"Measurement compatibility: {self.status.value}; " + "; ".join(self.reasons)
         shared = len(self.tasks.same) if self.tasks else 0
         if self.candidate_changed is None:
             candidate = "candidate unchanged as declared (source not recorded on one side)"
@@ -448,13 +438,9 @@ def check_compatibility(
             + _list_ids(tasks.changed)
         )
     if tasks.only_in_a:
-        reasons.append(
-            f"{len(tasks.only_in_a)} task(s) only in A: " + _list_ids(tasks.only_in_a)
-        )
+        reasons.append(f"{len(tasks.only_in_a)} task(s) only in A: " + _list_ids(tasks.only_in_a))
     if tasks.only_in_b:
-        reasons.append(
-            f"{len(tasks.only_in_b)} task(s) only in B: " + _list_ids(tasks.only_in_b)
-        )
+        reasons.append(f"{len(tasks.only_in_b)} task(s) only in B: " + _list_ids(tasks.only_in_b))
     if not (tasks.changed or tasks.only_in_a or tasks.only_in_b) and (
         ma.eval_set_hash != mb.eval_set_hash
     ):
@@ -481,8 +467,7 @@ def check_compatibility(
             graders_changed = True
             edited = [g.describe() for g, c in zip(graders_a, changes, strict=True) if c is True]
             reasons.append(
-                "grader source changed under the same declared identity: "
-                + ", ".join(edited)
+                "grader source changed under the same declared identity: " + ", ".join(edited)
             )
         elif any(c is None for c in changes):
             graders_changed = None
@@ -498,9 +483,7 @@ def check_compatibility(
         if va != vb:
             notes.append(f"runner {name} differs ({va!r} vs {vb!r})")
     if a.tracelens_version != b.tracelens_version:
-        notes.append(
-            f"TraceLens version differs ({a.tracelens_version} vs {b.tracelens_version})"
-        )
+        notes.append(f"TraceLens version differs ({a.tracelens_version} vs {b.tracelens_version})")
 
     ca, cb = a.candidate, b.candidate
     adapter_changed = component_change(ca.adapter, cb.adapter)

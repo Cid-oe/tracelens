@@ -385,15 +385,9 @@ class TestBaselineManagerListMethods:
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = BaselineManager(Path(tmpdir) / "baselines.json")
 
-            manager.create_canary_baseline(
-                "safety1", {"score": 0.9}, "fp1"
-            )
-            manager.create_canary_baseline(
-                "safety2", {"score": 0.9}, "fp2"
-            )
-            manager.create_capability_baseline(
-                "quality", {"score": 0.8}
-            )
+            manager.create_canary_baseline("safety1", {"score": 0.9}, "fp1")
+            manager.create_canary_baseline("safety2", {"score": 0.9}, "fp2")
+            manager.create_capability_baseline("quality", {"score": 0.8})
 
             canaries = manager.list_canary_baselines()
 
@@ -407,15 +401,9 @@ class TestBaselineManagerListMethods:
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = BaselineManager(Path(tmpdir) / "baselines.json")
 
-            manager.create_canary_baseline(
-                "safety", {"score": 0.9}, "fp1"
-            )
-            manager.create_capability_baseline(
-                "quality1", {"score": 0.8}
-            )
-            manager.create_capability_baseline(
-                "quality2", {"score": 0.8}
-            )
+            manager.create_canary_baseline("safety", {"score": 0.9}, "fp1")
+            manager.create_capability_baseline("quality1", {"score": 0.8})
+            manager.create_capability_baseline("quality2", {"score": 0.8})
 
             capabilities = manager.list_capability_baselines()
 
@@ -435,9 +423,7 @@ class TestBaselineManagerSaveLoad:
 
             # Create and save
             manager1 = BaselineManager(path)
-            manager1.create_canary_baseline(
-                "safety", {"score": 0.9}, "fingerprint123"
-            )
+            manager1.create_canary_baseline("safety", {"score": 0.9}, "fingerprint123")
             manager1.save()
 
             # Load in new manager

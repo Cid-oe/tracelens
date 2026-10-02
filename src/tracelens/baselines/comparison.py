@@ -110,9 +110,7 @@ def _is_flat(std: float) -> bool:
 
 
 def _is_binary(values: Sequence[float]) -> bool:
-    return all(
-        abs(v) <= _BINARY_TOLERANCE or abs(v - 1.0) <= _BINARY_TOLERANCE for v in values
-    )
+    return all(abs(v) <= _BINARY_TOLERANCE or abs(v - 1.0) <= _BINARY_TOLERANCE for v in values)
 
 
 def _round_half_up(x: float) -> int:
@@ -260,9 +258,7 @@ class _Sides:
         return replace(self, mean_c=0.0 if self.higher_is_better else 1.0)
 
 
-def _sides(
-    metric_baseline: MetricBaseline, current_values: Sequence[float]
-) -> _Sides:
+def _sides(metric_baseline: MetricBaseline, current_values: Sequence[float]) -> _Sides:
     n_c = len(current_values)
     mean_c = float(np.mean(current_values))
     std_c = float(np.std(current_values, ddof=1)) if n_c >= 2 else None
@@ -291,11 +287,7 @@ def _sides(
     # a count the summary does not contain, nor turn values that are not 0/1
     # into successes. Where either is missing the comparison falls back to
     # the continuous path rather than inventing a table.
-    binary = (
-        bool(is_rate)
-        and _is_a_whole_count(mean_b, n_b)
-        and _is_binary(current_values)
-    )
+    binary = bool(is_rate) and _is_a_whole_count(mean_b, n_b) and _is_binary(current_values)
     return _Sides(
         binary=binary,
         mean_b=mean_b,
@@ -316,9 +308,7 @@ def _p_value(sides: _Sides, alternative: Alternative) -> tuple[str | None, float
     one (the observed change is a drop) and ``"less"`` otherwise.
     """
     if sides.binary:
-        return TEST_BOSCHLOO, _boschloo_p(
-            sides.k_b, sides.n_b, sides.k_c, sides.n_c, alternative
-        )
+        return TEST_BOSCHLOO, _boschloo_p(sides.k_b, sides.n_b, sides.k_c, sides.n_c, alternative)
     if not (math.isfinite(sides.mean_b) and math.isfinite(sides.mean_c)):
         # A corrupt baseline value or a non-finite metric. There is nothing
         # to compare, and every branch below would happily return a number
@@ -379,9 +369,14 @@ def _p_value(sides: _Sides, alternative: Alternative) -> tuple[str | None, float
     # Welch throughout: a pooled estimate would assume the two populations
     # share a variance, which nothing here shows.
     result = stats.ttest_ind_from_stats(
-        sides.mean_b, std_b, sides.n_b,
-        sides.mean_c, std_c, sides.n_c,
-        equal_var=False, alternative=alternative,
+        sides.mean_b,
+        std_b,
+        sides.n_b,
+        sides.mean_c,
+        std_c,
+        sides.n_c,
+        equal_var=False,
+        alternative=alternative,
     )
     p = float(result.pvalue)
     if not math.isfinite(p):
@@ -446,10 +441,10 @@ def _trials_needed(
 class RegressionSeverity(str, Enum):
     """Severity levels for regressions."""
 
-    NONE = "none"           # No regression
-    MINOR = "minor"         # < 5% decline
-    MODERATE = "moderate"   # 5-15% decline (default blocking threshold)
-    SEVERE = "severe"       # > 15% decline
+    NONE = "none"  # No regression
+    MINOR = "minor"  # < 5% decline
+    MODERATE = "moderate"  # 5-15% decline (default blocking threshold)
+    SEVERE = "severe"  # > 15% decline
 
 
 # The severity ladder, least to most severe; blocking compares positions.
@@ -694,9 +689,7 @@ class RegressionReport(BaseModel):
 
         if self.regressions:
             if self.has_regression:
-                lines.append(
-                    f"REGRESSION DETECTED [{self.overall_severity.value.upper()}]"
-                )
+                lines.append(f"REGRESSION DETECTED [{self.overall_severity.value.upper()}]")
             else:
                 lines.append(
                     f"No significant regression ({len(self.regressions)} observed "
@@ -715,9 +708,7 @@ class RegressionReport(BaseModel):
             # A report a caller built from a summary rather than from
             # findings. It still carries a verdict, and ``should_block_ci``
             # still acts on it, so it must not read as a clean run.
-            lines.append(
-                f"REGRESSION DETECTED [{self.overall_severity.value.upper()}]"
-            )
+            lines.append(f"REGRESSION DETECTED [{self.overall_severity.value.upper()}]")
             if self.summary:
                 lines.append("")
                 lines.append(f"  {self.summary}")
@@ -993,8 +984,7 @@ class RegressionDetector:
             lines.append(f"REGRESSIONS DETECTED ({len(significant)} metrics):")
         elif regressions:
             lines.append(
-                f"No significant regressions ({len(regressions)} observed drop(s) "
-                "not significant):"
+                f"No significant regressions ({len(regressions)} observed drop(s) not significant):"
             )
         else:
             lines.append("No regressions detected.")

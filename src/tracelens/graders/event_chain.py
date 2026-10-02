@@ -28,9 +28,9 @@ class EventMatchType(StrEnum):
 class OrderingMode(StrEnum):
     """How to enforce ordering of matched events."""
 
-    STRICT = "strict"        # All events must appear in exact order
+    STRICT = "strict"  # All events must appear in exact order
     UNORDERED = "unordered"  # All events must appear, any order
-    PARTIAL = "partial"      # Respects per-event `after` constraints (DAG)
+    PARTIAL = "partial"  # Respects per-event `after` constraints (DAG)
 
 
 class EventExpectation(BaseModel):
@@ -161,8 +161,7 @@ class EventChainVerifier(CodeGrader):
         match expectation.match_type:
             case EventMatchType.TOOL_NAME:
                 return (
-                    step.tool_call is not None
-                    and step.tool_call.tool_name == expectation.tool_name
+                    step.tool_call is not None and step.tool_call.tool_name == expectation.tool_name
                 )
             case EventMatchType.TOOL_NAME_AND_ARGS:
                 if step.tool_call is None or step.tool_call.tool_name != expectation.tool_name:

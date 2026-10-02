@@ -21,21 +21,25 @@ from tracelens.core.transcript import Transcript
 class TrialStatus(str, Enum):
     """Status of a trial."""
 
-    PENDING = "pending"            # Not yet started
-    RUNNING = "running"            # Currently executing
-    COMPLETED = "completed"        # Finished successfully
-    FAILED = "failed"              # Task-level failure (agent couldn't solve it)
-    INFRA_ERROR = "infra_error"    # Infrastructure failure (OOM, network, sandbox)
-    TIMEOUT = "timeout"             # Runner budget timeout (adapter-raised timeouts classify as FAILED/INFRA_ERROR)
-    SKIPPED = "skipped"             # Skipped (e.g., due to filter)
+    PENDING = "pending"  # Not yet started
+    RUNNING = "running"  # Currently executing
+    COMPLETED = "completed"  # Finished successfully
+    FAILED = "failed"  # Task-level failure (agent couldn't solve it)
+    INFRA_ERROR = "infra_error"  # Infrastructure failure (OOM, network, sandbox)
+    TIMEOUT = (
+        "timeout"  # Runner budget timeout (adapter-raised timeouts classify as FAILED/INFRA_ERROR)
+    )
+    SKIPPED = "skipped"  # Skipped (e.g., due to filter)
 
 
 # Trial states that are evidence about the agent (statistical contract).
-_GRADABLE_STATUSES = frozenset({
-    TrialStatus.COMPLETED,
-    TrialStatus.FAILED,
-    TrialStatus.TIMEOUT,
-})
+_GRADABLE_STATUSES = frozenset(
+    {
+        TrialStatus.COMPLETED,
+        TrialStatus.FAILED,
+        TrialStatus.TIMEOUT,
+    }
+)
 
 
 class InfraError(Exception):
@@ -341,16 +345,12 @@ class TrialBatch(BaseModel):
     @property
     def total_input_tokens(self) -> int:
         """Total input tokens across all trial transcripts."""
-        return sum(
-            t.transcript.input_tokens for t in self.trials if t.transcript is not None
-        )
+        return sum(t.transcript.input_tokens for t in self.trials if t.transcript is not None)
 
     @property
     def total_output_tokens(self) -> int:
         """Total output tokens across all trial transcripts."""
-        return sum(
-            t.transcript.output_tokens for t in self.trials if t.transcript is not None
-        )
+        return sum(t.transcript.output_tokens for t in self.trials if t.transcript is not None)
 
     @property
     def total_tokens(self) -> int:

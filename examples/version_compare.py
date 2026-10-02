@@ -106,8 +106,13 @@ async def main() -> None:
     # is paired, and the interval comes from resampling tasks, so the six
     # tickets' different difficulties cancel instead of looking like noise.
     result = compare_runs(
-        b1, b2, metric="mean_score", threshold=0.05, seed=0,
-        baseline_label="v1", candidate_label="v2",
+        b1,
+        b2,
+        metric="mean_score",
+        threshold=0.05,
+        seed=0,
+        baseline_label="v1",
+        candidate_label="v2",
     )
     print()
     print("\n".join(result.summary_lines()))

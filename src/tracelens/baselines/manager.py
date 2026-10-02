@@ -352,17 +352,17 @@ class TaskBaseline(BaseModel):
                 the gate can tell a changed task from a regressed one.
         """
         # Archive current version
-        self.previous_versions.append({
-            "version": self.version,
-            "updated_at": self.updated_at.isoformat(),
-            "metrics": {k: v.model_dump() for k, v in self.metrics.items()},
-            "fingerprint": self.fingerprint,
-            "decision_spec": (
-                self.decision_spec.model_dump(mode="json")
-                if self.decision_spec
-                else None
-            ),
-        })
+        self.previous_versions.append(
+            {
+                "version": self.version,
+                "updated_at": self.updated_at.isoformat(),
+                "metrics": {k: v.model_dump() for k, v in self.metrics.items()},
+                "fingerprint": self.fingerprint,
+                "decision_spec": (
+                    self.decision_spec.model_dump(mode="json") if self.decision_spec else None
+                ),
+            }
+        )
 
         # Update version
         parts = self.version.split(".")
@@ -490,11 +490,14 @@ class BaselineManager:
             task_hash=data.get("task_hash"),
             metrics=metrics,
             created_at=datetime.fromisoformat(data["created_at"])
-            if "created_at" in data else utc_now(),
+            if "created_at" in data
+            else utc_now(),
             updated_at=datetime.fromisoformat(data["updated_at"])
-            if "updated_at" in data else utc_now(),
+            if "updated_at" in data
+            else utc_now(),
             last_promoted_at=datetime.fromisoformat(data["last_promoted_at"])
-            if "last_promoted_at" in data and data["last_promoted_at"] else None,
+            if "last_promoted_at" in data and data["last_promoted_at"]
+            else None,
             created_by=data.get("created_by", "manual"),
             git_commit=data.get("git_commit"),
             git_branch=data.get("git_branch"),
@@ -565,11 +568,13 @@ class BaselineManager:
 
         if existing:
             # Archive current version
-            existing.previous_versions.append({
-                "version": existing.version,
-                "updated_at": existing.updated_at.isoformat(),
-                "metrics": {k: v.model_dump() for k, v in existing.metrics.items()},
-            })
+            existing.previous_versions.append(
+                {
+                    "version": existing.version,
+                    "updated_at": existing.updated_at.isoformat(),
+                    "metrics": {k: v.model_dump() for k, v in existing.metrics.items()},
+                }
+            )
 
             # Update version
             parts = existing.version.split(".")
@@ -691,22 +696,30 @@ class BaselineManager:
             # For metrics where higher is better
             if metric_baseline.higher_is_better:
                 # Check absolute threshold (negative means decline)
-                if (metric_baseline.regression_threshold_absolute is not None and
-                        delta < metric_baseline.regression_threshold_absolute):
+                if (
+                    metric_baseline.regression_threshold_absolute is not None
+                    and delta < metric_baseline.regression_threshold_absolute
+                ):
                     regression = True
 
                 # Check relative threshold (negative means decline)
-                if (metric_baseline.regression_threshold_relative is not None and
-                        relative_change < -metric_baseline.regression_threshold_relative):
+                if (
+                    metric_baseline.regression_threshold_relative is not None
+                    and relative_change < -metric_baseline.regression_threshold_relative
+                ):
                     regression = True
             else:
                 # For metrics where lower is better (e.g., drawdown)
-                if (metric_baseline.regression_threshold_absolute is not None and
-                        delta > -metric_baseline.regression_threshold_absolute):
+                if (
+                    metric_baseline.regression_threshold_absolute is not None
+                    and delta > -metric_baseline.regression_threshold_absolute
+                ):
                     regression = True
 
-                if (metric_baseline.regression_threshold_relative is not None and
-                        relative_change > metric_baseline.regression_threshold_relative):
+                if (
+                    metric_baseline.regression_threshold_relative is not None
+                    and relative_change > metric_baseline.regression_threshold_relative
+                ):
                     regression = True
 
             # Calculate z-score if std available
@@ -763,9 +776,7 @@ class BaselineManager:
         if not fingerprint and decision_spec is not None:
             fingerprint = decision_spec.fingerprint
         if not fingerprint:
-            raise ValueError(
-                "Canary baselines require a fingerprint or decision_spec"
-            )
+            raise ValueError("Canary baselines require a fingerprint or decision_spec")
 
         baseline = TaskBaseline(
             task_id=task_id,
@@ -969,11 +980,7 @@ class BaselineManager:
 
     def list_stale_baselines(self) -> list[str]:
         """List all stale baseline task IDs."""
-        return [
-            task_id
-            for task_id, baseline in self._baselines.items()
-            if baseline.is_stale
-        ]
+        return [task_id for task_id, baseline in self._baselines.items() if baseline.is_stale]
 
     def get_baseline_summary(self, task_id: str) -> dict[str, Any] | None:
         """Get a summary of a baseline for reporting."""
@@ -1041,9 +1048,7 @@ class BaselineManager:
                 continue
 
             # Estimate current metric with CI
-            current_est = estimate_metric(
-                values, confidence, n_bootstrap
-            )
+            current_est = estimate_metric(values, confidence, n_bootstrap)
 
             # Compare using summary statistics (we don't have raw baseline data)
             comparison = compare_to_baseline_summary(

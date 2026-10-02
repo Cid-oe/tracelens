@@ -108,13 +108,16 @@ def print_tables() -> None:
     rows = []
     for p in FLAKY_RATES:
         for n_b, n_c in SIZES:
-            rows.append([f"{p:.1f}", str(n_b), str(n_c)] + [
-                pct(block_probability(n_b, n_c, p, p, level)) for _t, level in levels
-            ])
+            rows.append(
+                [f"{p:.1f}", str(n_b), str(n_c)]
+                + [pct(block_probability(n_b, n_c, p, p, level)) for _t, level in levels]
+            )
     print(table(["p", "baseline n", "check n"] + [f"T={t}" for t, _ in levels], rows))
     print()
     print("### Run-level false alarm with F flaky tasks (p = 0.8, baseline 5, check 5)\n")
-    print("`1 - (1 - q)^F` with `q` from the row above; deterministic tasks add nothing. This is the whole run-level rate: the suite criterion does not block by default.\n")
+    print(
+        "`1 - (1 - q)^F` with `q` from the row above; deterministic tasks add nothing. This is the whole run-level rate: the suite criterion does not block by default.\n"
+    )
     rows = []
     for t, level in levels:
         q = block_probability(5, 5, 0.8, 0.8, level)
@@ -126,18 +129,20 @@ def print_tables() -> None:
     rows = []
     for p_b, p_c in REGRESSIONS:
         for n_b, n_c in SIZES:
-            rows.append([f"{p_b:.1f} -> {p_c:.1f}", str(n_b), str(n_c)] + [
-                pct(block_probability(n_b, n_c, p_b, p_c, level)) for _t, level in levels
-            ])
+            rows.append(
+                [f"{p_b:.1f} -> {p_c:.1f}", str(n_b), str(n_c)]
+                + [pct(block_probability(n_b, n_c, p_b, p_c, level)) for _t, level in levels]
+            )
     print(table(["drop", "baseline n", "check n"] + [f"T={t}" for t, _ in levels], rows))
     print()
     print("### Check trials needed to decide a total failure\n")
     print("Smallest check size at which 0 passes after a perfect baseline reaches the level.\n")
     rows = []
     for n_b in (1, 2, 3, 5, 10, 20):
-        rows.append([str(n_b)] + [
-            str(trials_to_detect_total_failure(n_b, level) or ">60") for _t, level in levels
-        ])
+        rows.append(
+            [str(n_b)]
+            + [str(trials_to_detect_total_failure(n_b, level) or ">60") for _t, level in levels]
+        )
     print(table(["baseline n"] + [f"T={t}" for t, _ in levels], rows))
     print()
 
@@ -156,8 +161,9 @@ def simulate(runs: int, seed: int) -> None:
 
     rng = np.random.default_rng(seed)
 
-    def run_once(root: Path, tasks: int, flaky: int, n: int, p_flaky: float,
-                 drop: tuple[int, float] | None) -> GateStatus:
+    def run_once(
+        root: Path, tasks: int, flaky: int, n: int, p_flaky: float, drop: tuple[int, float] | None
+    ) -> GateStatus:
         manager = BaselineManager(root / "baselines.json")
         batch = TrialBatch()
         for index in range(tasks):
@@ -175,20 +181,39 @@ def simulate(runs: int, seed: int) -> None:
             for run_index in range(n):
                 trial = Trial(task_id=task_id, run_index=run_index, status=TrialStatus.COMPLETED)
                 passed = run_index < passes_c
-                trial.add_outcome(Outcome(
-                    trial_id=trial.trial_id, grader_id="g", passed=passed,
-                    score=1.0 if passed else 0.0,
-                ))
+                trial.add_outcome(
+                    Outcome(
+                        trial_id=trial.trial_id,
+                        grader_id="g",
+                        passed=passed,
+                        score=1.0 if passed else 0.0,
+                    )
+                )
                 batch.add_trial(trial)
         return evaluate_gate(batch, manager).status
 
     scenarios = [
-        ("null, T=50, 20% flaky at 0.8, n=5", dict(tasks=50, flaky=10, n=5, p_flaky=0.8, drop=None)),
-        ("null, T=100, all flaky at 0.8, n=5", dict(tasks=100, flaky=100, n=5, p_flaky=0.8, drop=None)),
+        (
+            "null, T=50, 20% flaky at 0.8, n=5",
+            dict(tasks=50, flaky=10, n=5, p_flaky=0.8, drop=None),
+        ),
+        (
+            "null, T=100, all flaky at 0.8, n=5",
+            dict(tasks=100, flaky=100, n=5, p_flaky=0.8, drop=None),
+        ),
         ("one task 1.0 -> 0.4, T=1, n=5", dict(tasks=1, flaky=0, n=5, p_flaky=0.8, drop=(1, 0.4))),
-        ("one task 1.0 -> 0.4, T=1, n=10", dict(tasks=1, flaky=0, n=10, p_flaky=0.8, drop=(1, 0.4))),
-        ("one task 1.0 -> 0.4, T=50, n=10", dict(tasks=50, flaky=0, n=10, p_flaky=0.8, drop=(1, 0.4))),
-        ("broad: 20 of 50 tasks 1.0 -> 0.8, n=5", dict(tasks=50, flaky=0, n=5, p_flaky=0.8, drop=(20, 0.8))),
+        (
+            "one task 1.0 -> 0.4, T=1, n=10",
+            dict(tasks=1, flaky=0, n=10, p_flaky=0.8, drop=(1, 0.4)),
+        ),
+        (
+            "one task 1.0 -> 0.4, T=50, n=10",
+            dict(tasks=50, flaky=0, n=10, p_flaky=0.8, drop=(1, 0.4)),
+        ),
+        (
+            "broad: 20 of 50 tasks 1.0 -> 0.8, n=5",
+            dict(tasks=50, flaky=0, n=5, p_flaky=0.8, drop=(20, 0.8)),
+        ),
     ]
     print(f"### Monte Carlo through evaluate_gate ({runs} runs each, seed {seed})\n")
     rows = []
@@ -206,7 +231,9 @@ def simulate(runs: int, seed: int) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
-    parser.add_argument("--simulate", action="store_true", help="also run the Monte Carlo scenarios")
+    parser.add_argument(
+        "--simulate", action="store_true", help="also run the Monte Carlo scenarios"
+    )
     parser.add_argument("--runs", type=int, default=200, help="Monte Carlo runs per scenario")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args(argv)

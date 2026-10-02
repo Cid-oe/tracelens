@@ -57,8 +57,7 @@ class _ExplodingGrader(CodeGrader):
 
 def _make_eval_set(n_tasks: int = 2) -> EvalSet:
     tasks = [
-        Task(task_id=f"task-{i}", name=f"Task {i}", input_data={"n": i})
-        for i in range(n_tasks)
+        Task(task_id=f"task-{i}", name=f"Task {i}", input_data={"n": i}) for i in range(n_tasks)
     ]
     return EvalSet(name="Test Suite", tasks=tasks)
 
@@ -118,6 +117,7 @@ class TestEvaluationRunner:
 
     async def test_timeout_handling(self):
         """Trials that exceed timeout are marked TIMEOUT."""
+
         async def slow_fn(input_data: dict) -> dict:
             await asyncio.sleep(10)
             return {}
@@ -134,6 +134,7 @@ class TestEvaluationRunner:
 
     async def test_adapter_error_handling(self):
         """Adapter exceptions result in FAILED status with no grading."""
+
         async def broken_fn(input_data: dict) -> dict:
             raise RuntimeError("agent crashed")
 
@@ -326,6 +327,7 @@ class TestInfraErrorClassification:
 
     async def test_explicit_infra_error_marks_infra_error_status(self):
         """Adapters can raise InfraError to self-report an infra failure."""
+
         async def raises_infra(input_data: dict) -> dict:
             raise InfraError("upstream API unreachable")
 
@@ -343,6 +345,7 @@ class TestInfraErrorClassification:
 
     async def test_memory_error_classified_as_infra(self):
         """OOM kills are the canonical Anthropic case — always infra."""
+
         async def ooms(input_data: dict) -> dict:
             raise MemoryError("out of memory")
 
@@ -354,6 +357,7 @@ class TestInfraErrorClassification:
 
     async def test_connection_error_classified_as_infra(self):
         """Network failures are infra, not task-level."""
+
         async def network_down(input_data: dict) -> dict:
             raise ConnectionError("connection refused")
 
@@ -365,6 +369,7 @@ class TestInfraErrorClassification:
     async def test_generic_runtime_error_stays_task_failure(self):
         """We don't want arbitrary RuntimeError bugs in the agent to
         silently inflate the infra-error rate and mask regressions."""
+
         async def generic_bug(input_data: dict) -> dict:
             raise RuntimeError("agent bug")
 
@@ -387,9 +392,7 @@ class TestInfraErrorClassification:
             async def run(self, task: Task) -> Transcript:
                 return Transcript(task_id=task.task_id)
 
-            async def teardown(
-                self, task: Task, transcript: Transcript | None
-            ) -> None:
+            async def teardown(self, task: Task, transcript: Transcript | None) -> None:
                 return
 
         runner = EvaluationRunner(_InfraFailSetup(), [_PassGrader()])
@@ -436,6 +439,7 @@ class TestConfigurableInfraClassification:
         """The default set stays conservative: OSError subclasses like
         FileNotFoundError are usually agent bugs, so they must not
         silently inflate the infra-error rate."""
+
         async def disk_full(input_data: dict) -> dict:
             raise OSError(28, "No space left on device")
 
@@ -449,9 +453,7 @@ class TestConfigurableInfraClassification:
         async def disk_full(input_data: dict) -> dict:
             raise OSError(28, "No space left on device")
 
-        config = RunnerConfig(
-            infra_exception_types=DEFAULT_INFRA_EXCEPTION_TYPES + (OSError,)
-        )
+        config = RunnerConfig(infra_exception_types=DEFAULT_INFRA_EXCEPTION_TYPES + (OSError,))
         runner = EvaluationRunner(SimpleAdapter(disk_full), [_PassGrader()], config)
         batch = await runner.run(_make_eval_set(1))
 
@@ -466,9 +468,7 @@ class TestConfigurableInfraClassification:
             async def run(self, task: Task) -> Transcript:
                 return Transcript(task_id=task.task_id, final_output={})
 
-        config = RunnerConfig(
-            infra_exception_types=DEFAULT_INFRA_EXCEPTION_TYPES + (OSError,)
-        )
+        config = RunnerConfig(infra_exception_types=DEFAULT_INFRA_EXCEPTION_TYPES + (OSError,))
         runner = EvaluationRunner(_OSErrorSetup(), [_PassGrader()], config)
         batch = await runner.run(_make_eval_set(1))
 
@@ -478,6 +478,7 @@ class TestConfigurableInfraClassification:
         """TimeoutError is a subclass of OSError on Python >= 3.10; the
         runner's own budget timeout must stay classified TIMEOUT even
         when OSError is configured as infra."""
+
         async def too_slow(input_data: dict) -> dict:
             await asyncio.sleep(1.0)
             return {}
@@ -519,12 +520,8 @@ class TestAdapterTimeoutClassification:
         async def upstream_timeout(input_data: dict) -> dict:
             raise TimeoutError("upstream read timeout")
 
-        config = RunnerConfig(
-            infra_exception_types=DEFAULT_INFRA_EXCEPTION_TYPES + (TimeoutError,)
-        )
-        runner = EvaluationRunner(
-            SimpleAdapter(upstream_timeout), [_PassGrader()], config
-        )
+        config = RunnerConfig(infra_exception_types=DEFAULT_INFRA_EXCEPTION_TYPES + (TimeoutError,))
+        runner = EvaluationRunner(SimpleAdapter(upstream_timeout), [_PassGrader()], config)
         batch = await runner.run(_make_eval_set(1))
 
         assert batch.trials[0].status == TrialStatus.INFRA_ERROR
@@ -606,9 +603,7 @@ class TestFailFast:
             await asyncio.sleep(1.0)
             return {}
 
-        config = RunnerConfig(
-            fail_fast=True, max_concurrency=1, timeout_seconds=0.05
-        )
+        config = RunnerConfig(fail_fast=True, max_concurrency=1, timeout_seconds=0.05)
         runner = EvaluationRunner(SimpleAdapter(slow), [_PassGrader()], config)
 
         batch = await runner.run(self._eval_set(3))

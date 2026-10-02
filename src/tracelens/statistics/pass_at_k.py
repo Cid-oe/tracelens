@@ -179,10 +179,7 @@ class PassAtKAnalyzer:
         Returns:
             Dict mapping "pass@k" to computed value
         """
-        return {
-            f"pass@{k}": pass_at_k_estimator(results_per_task, k)
-            for k in self.k_values
-        }
+        return {f"pass@{k}": pass_at_k_estimator(results_per_task, k) for k in self.k_values}
 
     def analyze_detailed(
         self,
@@ -194,10 +191,7 @@ class PassAtKAnalyzer:
             Dict mapping "pass@k" to a :class:`MetricValue`; ``value`` is
             ``None`` where no task supports that ``k``.
         """
-        return {
-            f"pass@{k}": pass_at_k_metric(results_per_task, k)
-            for k in self.k_values
-        }
+        return {f"pass@{k}": pass_at_k_metric(results_per_task, k) for k in self.k_values}
 
     def compute_confidence_interval(
         self,
