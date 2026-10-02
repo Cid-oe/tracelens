@@ -32,15 +32,18 @@ and filters read (TraceLens itself doesn't interpret them).
 ```python
 from tracelens import Task, EvalSet
 
-eval_set = EvalSet(name="support-suite", tasks=[
-    Task(
-        name="refund within policy",
-        input_data={"ticket": "I want a refund for order #5512"},
-        metadata={"expected_action": "refund"},   # your grader reads this
-        category="task",
-        tags=["billing", "refund"],
-    ),
-])
+eval_set = EvalSet(
+    name="support-suite",
+    tasks=[
+        Task(
+            name="refund within policy",
+            input_data={"ticket": "I want a refund for order #5512"},
+            metadata={"expected_action": "refund"},  # your grader reads this
+            category="task",
+            tags=["billing", "refund"],
+        ),
+    ],
+)
 ```
 
 **Inline vs. from JSON.** Small suites can be inline; real suites live in a
@@ -82,8 +85,10 @@ by how your agent is exposed:
 ```python
 from tracelens import SimpleAdapter
 
+
 async def my_agent(input_data: dict) -> dict:
     return {"action": decide(input_data["ticket"])}
+
 
 adapter = SimpleAdapter(my_agent)
 ```
@@ -97,6 +102,7 @@ downstream is identical regardless of which adapter you pick.
 from datetime import UTC, datetime
 
 from tracelens import AgentAdapter, Task, Transcript
+
 
 class MyAdapter(AgentAdapter):
     provenance_version = "agent-2.3.0"  # bump when the agent code or prompt under test changes
@@ -138,6 +144,7 @@ pass/score:
 
 ```python
 from tracelens import CodeGrader
+
 
 class ActionGrader(CodeGrader):
     provenance_version = "rubric-v1"  # bump when the rubric changes
@@ -244,7 +251,7 @@ from tracelens import ReportGenerator
 
 gen = ReportGenerator(k_values=[1, 3, 5], consistency_k_values=[2, 3, 5])
 report = gen.build_report(batch)
-print(gen.render_ci_summary(report))   # also render_markdown / render_html
+print(gen.render_ci_summary(report))  # also render_markdown / render_html
 ```
 
 **Gating CI on regressions** — once a run looks good, freeze it as a baseline and
@@ -334,6 +341,7 @@ run:
   timeout: 300                       # --timeout, in seconds
   progress: true                     # --progress / --no-progress
   checkpoint: eval/results/checkpoint.json   # --checkpoint
+  keep_checkpoint: false             # --keep-checkpoint / --no-keep-checkpoint
   max_infra_retries: 0               # --max-infra-retries
   infra_exceptions: [builtins.OSError]       # --infra-exceptions
   decision_spec: eval/decision-spec.json     # --decision-spec
@@ -400,6 +408,26 @@ stderr:
 [tracelens] wrote report: reports/results.md
 [tracelens] wrote trials: reports/trials.json
 ```
+
+---
+
+### Data in artifacts
+
+TraceLens separates aggregate metrics from raw evaluation evidence. Knowing which
+files contain unscrubbed agent data helps protect credentials, personally identifiable
+information (PII), and proprietary task inputs:
+
+| Artifact | Category | Contents | Data considerations |
+|----------|----------|----------|---------------------|
+| `results.json` | Aggregate | Task pass rates, metrics, gate decision, provenance hashes | Safe for public dashboards and job summaries; contains no task input or agent output text. |
+| `report.md` | Aggregate | Markdown summary tables, gate verdicts, regression flags | Designed for CI job summaries (e.g. `$GITHUB_STEP_SUMMARY`). No raw transcripts. |
+| `report.html` | Aggregate | Interactive HTML dashboard with charts and summary tables | Self-contained aggregate view. |
+| `trials.json` | Raw evidence | Complete `TrialBatch`: inputs, outputs, transcripts, tool calls, error messages | **Sensitive.** May contain raw agent inputs, API keys in outputs, and full error bodies. Added to `.gitignore` by `tracelens init`. |
+| `checkpoint.json` | Raw evidence | Resumable run state and completed trials | Same contents as `trials.json`. Deleted automatically on successful completion unless `--keep-checkpoint` is passed. |
+| `failures.json` / `failures.html` | Raw evidence | Excerpts of failing trial inputs, outputs, grader feedback, transcripts | Inspectable failure reports. May contain unscrubbed error messages or outputs. |
+| Review worksheets (`review.json`) | Raw evidence | Sampled trial outputs and excerpts for human review | Output excerpts may carry raw agent outputs. Use `sample --excerpt-field` to restrict excerpts to specific fields. |
+
+---
 
 ## Where to go next
 

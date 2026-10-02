@@ -278,9 +278,7 @@ else:
         assert call_count == 1
         await adapter.close()
 
-    async def test_connection_error_retried(
-        self, config: HTTPAdapterConfig, task: Task
-    ):
+    async def test_connection_error_retried(self, config: HTTPAdapterConfig, task: Task):
         """Network errors like ConnectError are retried."""
         adapter = HTTPAPIAdapter(config)
         call_count = 0

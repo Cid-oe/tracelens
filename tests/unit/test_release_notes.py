@@ -62,7 +62,9 @@ class TestPrerelease:
     def test_final_versions(self, version):
         assert not is_prerelease(version)
 
-    @pytest.mark.parametrize("version", ["0.5.0rc1", "0.5.0a1", "0.5.0b2", "0.5.0.dev3", "0.5.0.post1"])
+    @pytest.mark.parametrize(
+        "version", ["0.5.0rc1", "0.5.0a1", "0.5.0b2", "0.5.0.dev3", "0.5.0.post1"]
+    )
     def test_everything_else(self, version):
         assert is_prerelease(version)
 
@@ -78,7 +80,10 @@ class TestReleaseNotes:
         assert "Older" not in notes and "in progress" not in notes
 
     def test_missing_section_is_an_error_naming_what_exists(self):
-        with pytest.raises(LookupError, match=r"no '## \[0\.6\.0\] - YYYY-MM-DD' section \(found: 0\.5\.0, 0\.4\.0\)"):
+        with pytest.raises(
+            LookupError,
+            match=r"no '## \[0\.6\.0\] - YYYY-MM-DD' section \(found: 0\.5\.0, 0\.4\.0\)",
+        ):
             release_notes(CHANGELOG, "0.6.0")
 
     def test_empty_section_is_an_error(self):
@@ -114,7 +119,11 @@ def test_dry_run_with_empty_unreleased_renders_a_placeholder():
 class TestCommandLine:
     def _run(self, *args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(SCRIPT), *args], cwd=cwd, capture_output=True, text=True, timeout=60,
+            [sys.executable, str(SCRIPT), *args],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
 
     def test_writes_notes_file_and_prints_prerelease(self, tmp_path: Path):
@@ -122,8 +131,14 @@ class TestCommandLine:
         result = self._run("--version", "0.5.0", "--output", "notes.md", cwd=tmp_path)
         assert result.returncode == 0, result.stderr
         assert (tmp_path / "notes.md").read_text() == release_notes(CHANGELOG, "0.5.0")
-        assert self._run("--version", "0.5.0rc1", "--print", "prerelease", cwd=tmp_path).stdout == "true\n"
-        assert self._run("--version", "0.5.0", "--print", "prerelease", cwd=tmp_path).stdout == "false\n"
+        assert (
+            self._run("--version", "0.5.0rc1", "--print", "prerelease", cwd=tmp_path).stdout
+            == "true\n"
+        )
+        assert (
+            self._run("--version", "0.5.0", "--print", "prerelease", cwd=tmp_path).stdout
+            == "false\n"
+        )
 
     def test_missing_section_exits_1_and_missing_file_exits_2(self, tmp_path: Path):
         (tmp_path / "CHANGELOG.md").write_text(CHANGELOG)

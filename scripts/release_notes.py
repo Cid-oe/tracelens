@@ -96,11 +96,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--changelog", default="CHANGELOG.md", help="Path to CHANGELOG.md")
     parser.add_argument("--output", default=None, help="Write the notes here instead of stdout")
     parser.add_argument(
-        "--allow-unreleased", action="store_true",
+        "--allow-unreleased",
+        action="store_true",
         help="Dry runs only: fall back to the [Unreleased] section, labelled as such",
     )
     parser.add_argument(
-        "--print", choices=["notes", "prerelease"], default="notes",
+        "--print",
+        choices=["notes", "prerelease"],
+        default="notes",
         help="'prerelease' prints true/false for the version instead of notes",
     )
     args = parser.parse_args(argv)

@@ -202,7 +202,8 @@ class EvalSet(BaseModel):
     ) -> list[Task]:
         """Filter tasks by criteria."""
         filtered = [
-            t for t in self.tasks
+            t
+            for t in self.tasks
             if t.matches_filter(tags=tags, categories=categories, difficulties=difficulties)
         ]
         if max_tasks:
@@ -218,8 +219,10 @@ class EvalSet(BaseModel):
     ) -> "EvalSet":
         """Return a new EvalSet with only tasks matching the filter criteria."""
         filtered = self.filter_tasks(
-            tags=tags, categories=categories,
-            difficulties=difficulties, max_tasks=max_tasks,
+            tags=tags,
+            categories=categories,
+            difficulties=difficulties,
+            max_tasks=max_tasks,
         )
         return EvalSet(
             name=self.name,

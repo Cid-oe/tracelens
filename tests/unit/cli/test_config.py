@@ -32,6 +32,7 @@ run:
   timeout: 45
   progress: true
   checkpoint: eval/results/checkpoint.json
+  keep_checkpoint: true
   max_infra_retries: 2
   infra_exceptions: [builtins.OSError]
   decision_spec: eval/spec.json
@@ -85,6 +86,7 @@ class TestLoadRunConfig:
             "timeout": 45.0,
             "progress": True,
             "checkpoint": str(base / "eval/results/checkpoint.json"),
+            "keep_checkpoint": True,
             "max_infra_retries": 2,
             "infra_exceptions": ["builtins.OSError"],
             "decision_spec": str(base / "eval/spec.json"),
@@ -201,15 +203,22 @@ class TestResolveRunSettings:
         config = _write(tmp_path, FULL_CONFIG)
         resolved, _ = resolve_run_settings(
             _parse(
-                "--config", str(config),
-                "--num-runs", "1",  # equal to the built-in default, still explicit
-                "--timeout", "0.5",
-                "--graders", "cli.G",
-                "--output", "cli-results.json",  # a CLI path keeps cwd semantics
-                "--fail-on-regression", "minor",
+                "--config",
+                str(config),
+                "--num-runs",
+                "1",  # equal to the built-in default, still explicit
+                "--timeout",
+                "0.5",
+                "--graders",
+                "cli.G",
+                "--output",
+                "cli-results.json",  # a CLI path keeps cwd semantics
+                "--fail-on-regression",
+                "minor",
                 "--no-progress",  # explicit false over a true in the file
                 "--no-require-baselines",
-                "--max-infra-retries", "0",  # explicit zero over a 2 in the file
+                "--max-infra-retries",
+                "0",  # explicit zero over a 2 in the file
             )
         )
         assert resolved.num_runs == 1
@@ -227,8 +236,14 @@ class TestResolveRunSettings:
         assert resolved.report == str(tmp_path.resolve() / "eval/results/report.md")
         assert resolved.noise_band == 0.05
         assert resolved.explicit_run_options == {
-            "num_runs", "timeout", "graders", "output", "fail_on_regression",
-            "progress", "require_baselines", "max_infra_retries",
+            "num_runs",
+            "timeout",
+            "graders",
+            "output",
+            "fail_on_regression",
+            "progress",
+            "require_baselines",
+            "max_infra_retries",
         }
 
     @pytest.mark.parametrize(
@@ -248,9 +263,7 @@ class TestResolveRunSettings:
         assert resolved.progress is expected
 
     def test_no_baseline_check_switches_a_configured_gate_off(self, tmp_path: Path) -> None:
-        config = _write(
-            tmp_path, MINIMAL + "  baseline:\n    enabled: true\n    file: b.json\n"
-        )
+        config = _write(tmp_path, MINIMAL + "  baseline:\n    enabled: true\n    file: b.json\n")
         on, _ = resolve_run_settings(_parse("--config", str(config)))
         off, _ = resolve_run_settings(_parse("--config", str(config), "--no-baseline-check"))
         assert on.baseline_check is True
@@ -259,8 +272,9 @@ class TestResolveRunSettings:
 
     def test_flags_alone_behave_as_before(self) -> None:
         resolved, import_root = resolve_run_settings(
-            _parse("--eval-set", "t.json", "--adapter", "a.A", "--graders", "g.G", "h.H",
-                   "--progress")
+            _parse(
+                "--eval-set", "t.json", "--adapter", "a.A", "--graders", "g.G", "h.H", "--progress"
+            )
         )
         assert import_root is None
         assert resolved.eval_set == "t.json"  # cwd-relative, untouched

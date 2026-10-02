@@ -63,4 +63,6 @@ def test_hello_world_defaults_to_the_checked_in_reports_directory() -> None:
     spec.loader.exec_module(module)
     assert module.DEFAULT_REPORTS_DIR == SAMPLE_DIR
     assert module._parse_args([]).reports_dir == SAMPLE_DIR
-    assert module._parse_args(["--reports-dir", "/tmp/elsewhere"]).reports_dir == Path("/tmp/elsewhere")
+    assert module._parse_args(["--reports-dir", "/tmp/elsewhere"]).reports_dir == Path(
+        "/tmp/elsewhere"
+    )
