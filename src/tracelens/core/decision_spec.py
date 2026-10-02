@@ -29,12 +29,8 @@ class ModelConfig(BaseModel):
     that could affect output.
     """
 
-    provider: str = Field(
-        description="Model provider (e.g., 'anthropic', 'openai', 'google')"
-    )
-    model_id: str = Field(
-        description="Model identifier (e.g., 'claude-3-opus-20240229')"
-    )
+    provider: str = Field(description="Model provider (e.g., 'anthropic', 'openai', 'google')")
+    model_id: str = Field(description="Model identifier (e.g., 'claude-3-opus-20240229')")
     model_version: str | None = Field(
         default=None,
         description="Specific version or snapshot if available",
@@ -314,8 +310,7 @@ class InfraConfig(BaseModel):
     runtime_platform: str | None = Field(
         default=None,
         description=(
-            "Container / runtime platform "
-            "(e.g. 'kubernetes', 'docker', 'local', 'fly.io')."
+            "Container / runtime platform (e.g. 'kubernetes', 'docker', 'local', 'fly.io')."
         ),
     )
     sandbox_provider: str | None = Field(

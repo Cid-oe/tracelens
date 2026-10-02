@@ -78,10 +78,13 @@ async def main() -> None:
     )
 
     # 3. Two tasks, 5 runs each.
-    eval_set = EvalSet(name="http-echo", tasks=[
-        Task(name="add small", input_data={"a": 2, "b": 3}),
-        Task(name="add large", input_data={"a": 1000, "b": 1234}),
-    ])
+    eval_set = EvalSet(
+        name="http-echo",
+        tasks=[
+            Task(name="add small", input_data={"a": 2, "b": 3}),
+            Task(name="add large", input_data={"a": 1000, "b": 1234}),
+        ],
+    )
     runner = EvaluationRunner(adapter, [grader], RunnerConfig(num_runs=5))
 
     batch = await runner.run(eval_set)

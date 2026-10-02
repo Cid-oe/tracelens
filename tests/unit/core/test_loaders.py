@@ -612,9 +612,7 @@ class TestCSVTaskLoader:
             CSVTaskLoader().load(csv_file)
 
     @pytest.mark.parametrize("duplicate", ["input", "name", "metadata"])
-    def test_load_duplicate_column_names_raises(
-        self, tmp_path: Path, duplicate: str
-    ) -> None:
+    def test_load_duplicate_column_names_raises(self, tmp_path: Path, duplicate: str) -> None:
         csv_file = tmp_path / "duplicate-header.csv"
         csv_file.write_text(
             f"input,name,metadata,{duplicate}\nprompt,T,{{}},duplicate value\n",
@@ -925,11 +923,21 @@ class TestLoadTasksDispatch:
         from tracelens.loaders import load_tasks  # noqa: F401  (import check)
 
         json_path = tmp_path / "tasks.json"
-        json_path.write_text(json.dumps({"tasks": [
-            {"task_id": r["task_id"], "name": r["name"], "input_data": r["input"],
-             "metadata": {"subject": r["subject"]}}
-            for r in self.RECORDS
-        ]}))
+        json_path.write_text(
+            json.dumps(
+                {
+                    "tasks": [
+                        {
+                            "task_id": r["task_id"],
+                            "name": r["name"],
+                            "input_data": r["input"],
+                            "metadata": {"subject": r["subject"]},
+                        }
+                        for r in self.RECORDS
+                    ]
+                }
+            )
+        )
         jsonl_path = tmp_path / "tasks.jsonl"
         jsonl_path.write_text("\n".join(json.dumps(r) for r in self.RECORDS) + "\n")
         csv_path = tmp_path / "tasks.csv"

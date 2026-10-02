@@ -26,6 +26,7 @@ from tracelens.reporting.generator import ReportGenerator
 
 # --- Grader ---
 
+
 class MathGrader(CodeGrader):
     """Grades math tasks by comparing answer to expected value."""
 
@@ -44,6 +45,7 @@ class MathGrader(CodeGrader):
 
 
 # --- Agent function ---
+
 
 async def math_agent(input_data: dict[str, Any]) -> dict[str, Any]:
     """A simple math agent that adds or multiplies two numbers.
