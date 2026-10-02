@@ -64,12 +64,16 @@ class TestPrepare:
         assert body.strip() == ""
 
     def test_summary_goes_above_the_entries(self):
-        updated, section = prepare(CHANGELOG, "0.5.0", date=dt.date(2026, 9, 6), summary="Big release.")
+        updated, section = prepare(
+            CHANGELOG, "0.5.0", date=dt.date(2026, 9, 6), summary="Big release."
+        )
         assert section.startswith("Big release.\n\n### Added\n")
         assert "## [0.5.0] - 2026-09-06\n\nBig release.\n\n### Added" in updated
 
     def test_refuses_to_release_nothing(self):
-        empty = "# Changelog\n\n## [Unreleased]\n\n### Added\n\n## [0.4.0] - 2026-07-19\n\n- Older.\n"
+        empty = (
+            "# Changelog\n\n## [Unreleased]\n\n### Added\n\n## [0.4.0] - 2026-07-19\n\n- Older.\n"
+        )
         with pytest.raises(ReleaseError, match="nothing to release"):
             prepare(empty, "0.5.0")
 
@@ -86,7 +90,9 @@ class TestPrepare:
         assert notes_spec is not None and notes_spec.loader is not None
         notes = importlib.util.module_from_spec(notes_spec)
         notes_spec.loader.exec_module(notes)
-        updated, section = prepare(CHANGELOG, "0.5.0", date=dt.date(2026, 9, 6), summary="Big release.")
+        updated, section = prepare(
+            CHANGELOG, "0.5.0", date=dt.date(2026, 9, 6), summary="Big release."
+        )
         assert notes.sections(updated)["0.5.0"] == section
         assert notes.release_notes(updated, "0.5.0").startswith(section.rstrip())
 
@@ -94,7 +100,11 @@ class TestPrepare:
 class TestCommandLine:
     def _run(self, *args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(SCRIPT), *args], cwd=cwd, capture_output=True, text=True, timeout=60,
+            [sys.executable, str(SCRIPT), *args],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
 
     def test_check_then_write(self, tmp_path: Path):
@@ -103,7 +113,11 @@ class TestCommandLine:
         assert check.returncode == 0 and check.stdout.startswith("ok: 0.5.0 would release")
         assert (tmp_path / "CHANGELOG.md").read_text() == CHANGELOG  # untouched
         write = self._run("--version", "0.5.0", "--date", "2026-09-06", cwd=tmp_path)
-        assert write.returncode == 0 and "released 0.5.0" in write.stdout and "2 entries" in write.stdout
+        assert (
+            write.returncode == 0
+            and "released 0.5.0" in write.stdout
+            and "2 entries" in write.stdout
+        )
         assert "## [0.5.0] - 2026-09-06" in (tmp_path / "CHANGELOG.md").read_text()
 
     def test_errors_exit_1_or_2(self, tmp_path: Path):
@@ -111,7 +125,10 @@ class TestCommandLine:
         assert self._run("--version", "0.4.0", cwd=tmp_path).returncode == 1
         assert self._run("--version", "nope", cwd=tmp_path).returncode == 1
         assert self._run("--version", "0.5.0", "--date", "yesterday", cwd=tmp_path).returncode == 2
-        assert self._run("--version", "0.5.0", "--changelog", "missing.md", cwd=tmp_path).returncode == 2
+        assert (
+            self._run("--version", "0.5.0", "--changelog", "missing.md", cwd=tmp_path).returncode
+            == 2
+        )
 
     def test_real_changelog_is_well_formed_in_every_release_state(self):
         # With entries under [Unreleased] a check succeeds; right after a

@@ -19,9 +19,7 @@ def _trials_file(tmp_path: Path, scores: list[float]) -> Path:
     for i, s in enumerate(scores):
         trial = Trial(task_id=f"task-{i}", status=TrialStatus.COMPLETED)
         trial.transcript = Transcript(task_id=f"task-{i}", final_output=f"answer-{i}")
-        trial.add_outcome(
-            Outcome(trial_id=trial.trial_id, grader_id="g", passed=s >= 0.5, score=s)
-        )
+        trial.add_outcome(Outcome(trial_id=trial.trial_id, grader_id="g", passed=s >= 0.5, score=s))
         batch.add_trial(trial)
     path = tmp_path / "trials.json"
     path.write_text(json.dumps(batch.to_dict()))
@@ -40,13 +38,19 @@ def test_sample_parser_defaults() -> None:
 
 def test_reconcile_is_an_alias_for_calibrate() -> None:
     parser = build_parser()
-    args = parser.parse_args([
-        "reconcile",
-        "--grader", "my.Grader",
-        "--samples", "samples.json",
-        "--annotations", "human.json",
-        "--results", "results.json",
-    ])
+    args = parser.parse_args(
+        [
+            "reconcile",
+            "--grader",
+            "my.Grader",
+            "--samples",
+            "samples.json",
+            "--annotations",
+            "human.json",
+            "--results",
+            "results.json",
+        ]
+    )
     assert args.command == "reconcile"
     # Same options as calibrate, so the existing handler can serve it.
     assert args.grader == "my.Grader"
@@ -102,8 +106,12 @@ def test_cmd_sample_handles_malformed_json(tmp_path: Path) -> None:
     bad.write_text("{not valid json")
 
     args = argparse.Namespace(
-        trials=str(bad), size=2, strategy="diverse", seed=0,
-        excerpt_chars=280, output=None,
+        trials=str(bad),
+        size=2,
+        strategy="diverse",
+        seed=0,
+        excerpt_chars=280,
+        output=None,
     )
     # A usage/input error: exit 2, not an unhandled exception.
     assert cmd_sample(args) == 2
@@ -121,9 +129,7 @@ def test_cmd_reconcile_from_self_contained_worksheet(tmp_path: Path) -> None:
             "human_score": h,
             "human_passed": h >= 0.5,
         }
-        for i, (g, h) in enumerate(
-            [(0.9, 0.85), (0.8, 0.9), (0.6, 0.55), (0.7, 0.75), (0.4, 0.45)]
-        )
+        for i, (g, h) in enumerate([(0.9, 0.85), (0.8, 0.9), (0.6, 0.55), (0.7, 0.75), (0.4, 0.45)])
     ]
     wf = tmp_path / "review.json"
     wf.write_text(json.dumps(rows))

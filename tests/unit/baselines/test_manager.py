@@ -200,9 +200,7 @@ class TestBaselineDecisionSpecRoundTrip:
             task_id="t1",
             decision_spec=DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=2048)),
         )
-        baseline.add_metric(
-            metric_name="mean_score", value=0.2, std=0.001, sample_size=10
-        )
+        baseline.add_metric(metric_name="mean_score", value=0.2, std=0.001, sample_size=10)
         manager.set_baseline(baseline)
         manager.save()
 
@@ -229,9 +227,7 @@ class TestDecisionSpecWritePath:
     def test_update_baseline_stores_decision_spec(self, tmp_path: Path) -> None:
         manager = BaselineManager(tmp_path / "baselines.json")
 
-        baseline = manager.update_baseline(
-            "t1", {"pass_rate": 1.0}, decision_spec=self._spec(2048)
-        )
+        baseline = manager.update_baseline("t1", {"pass_rate": 1.0}, decision_spec=self._spec(2048))
 
         assert baseline.decision_spec is not None
         assert baseline.fingerprint == self._spec(2048).fingerprint
@@ -242,9 +238,7 @@ class TestDecisionSpecWritePath:
         manager = BaselineManager(tmp_path / "baselines.json")
         spec = self._spec(2048)
 
-        baseline = manager.create_capability_baseline(
-            "t1", {"pass_rate": 1.0}, decision_spec=spec
-        )
+        baseline = manager.create_capability_baseline("t1", {"pass_rate": 1.0}, decision_spec=spec)
 
         assert baseline.decision_spec == spec
         assert baseline.fingerprint == spec.fingerprint
@@ -255,25 +249,19 @@ class TestDecisionSpecWritePath:
         manager = BaselineManager(tmp_path / "baselines.json")
         spec = self._spec(2048)
 
-        baseline = manager.create_canary_baseline(
-            "t1", {"pass_rate": 1.0}, decision_spec=spec
-        )
+        baseline = manager.create_canary_baseline("t1", {"pass_rate": 1.0}, decision_spec=spec)
 
         assert baseline.fingerprint == spec.fingerprint
         assert baseline.decision_spec == spec
 
-    def test_promote_refreshes_spec_and_archives_the_old_one(
-        self, tmp_path: Path
-    ) -> None:
+    def test_promote_refreshes_spec_and_archives_the_old_one(self, tmp_path: Path) -> None:
         manager = BaselineManager(tmp_path / "baselines.json")
         old_spec, new_spec = self._spec(2048), self._spec(512)
         baseline = manager.create_capability_baseline(
             "t1", {"pass_rate": 1.0}, sample_size=20, decision_spec=old_spec
         )
 
-        baseline.promote(
-            {"pass_rate": 1.0}, sample_size=20, decision_spec=new_spec
-        )
+        baseline.promote({"pass_rate": 1.0}, sample_size=20, decision_spec=new_spec)
 
         assert baseline.decision_spec == new_spec
         assert baseline.fingerprint == new_spec.fingerprint
@@ -283,13 +271,9 @@ class TestDecisionSpecWritePath:
 
     def test_force_promote_threads_decision_spec(self, tmp_path: Path) -> None:
         manager = BaselineManager(tmp_path / "baselines.json")
-        manager.create_capability_baseline(
-            "t1", {"pass_rate": 1.0}, decision_spec=self._spec(2048)
-        )
+        manager.create_capability_baseline("t1", {"pass_rate": 1.0}, decision_spec=self._spec(2048))
 
-        promoted = manager.force_promote(
-            "t1", {"pass_rate": 1.0}, decision_spec=self._spec(512)
-        )
+        promoted = manager.force_promote("t1", {"pass_rate": 1.0}, decision_spec=self._spec(512))
 
         assert promoted.decision_spec == self._spec(512)
         assert promoted.fingerprint == self._spec(512).fingerprint

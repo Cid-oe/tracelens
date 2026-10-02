@@ -188,7 +188,9 @@ def bump_version(base: tuple[int, int, int], bump: str) -> str:
     return f"{major}.{minor}.{patch + 1}"
 
 
-def check_new(version: str, tags: Sequence[str], changelog: str, base: tuple[int, int, int]) -> None:
+def check_new(
+    version: str, tags: Sequence[str], changelog: str, base: tuple[int, int, int]
+) -> None:
     """Raise ``ReleaseError`` unless ``version`` can be released after ``base``."""
     if VERSION.match(version) is None:
         raise ReleaseError(
@@ -197,7 +199,9 @@ def check_new(version: str, tags: Sequence[str], changelog: str, base: tuple[int
     if f"v{version}" in {tag.strip() for tag in tags}:
         raise ReleaseError(f"tag v{version} already exists")
     if version_key(version) < base:
-        raise ReleaseError(f"version {version} is older than the latest tag v{'.'.join(map(str, base))}")
+        raise ReleaseError(
+            f"version {version} is older than the latest tag v{'.'.join(map(str, base))}"
+        )
     if re.search(rf"^## \[{re.escape(version)}\]", changelog, flags=re.MULTILINE):
         raise ReleaseError(f"CHANGELOG.md already has a section for {version}")
 
@@ -268,7 +272,9 @@ def main(argv: list[str] | None = None) -> int:
     source.add_argument("--message", help="The commit message (only its first line is read)")
     source.add_argument("--message-file", help="File holding the commit message")
     parser.add_argument(
-        "--tags", nargs="*", default=None,
+        "--tags",
+        nargs="*",
+        default=None,
         help="Existing tags (default: git tag --list 'v*' in the current repository)",
     )
     args = parser.parse_args(argv)

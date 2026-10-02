@@ -133,9 +133,7 @@ class TestPassAtKAnalyzer:
     def test_analyze_with_ci(self, pass_results_by_task):
         """Test analyze with confidence intervals."""
         analyzer = PassAtKAnalyzer(k_values=[1, 3])
-        results = analyzer.analyze_with_ci(
-            pass_results_by_task, confidence=0.95, n_bootstrap=100
-        )
+        results = analyzer.analyze_with_ci(pass_results_by_task, confidence=0.95, n_bootstrap=100)
 
         assert "pass@1" in results
         assert "value" in results["pass@1"]
@@ -164,9 +162,7 @@ class TestBootstrapMultiplicity:
         # sorted order: a -> 1.0, b -> 0.0, c -> 1.0
         results = {"a": [True], "b": [False], "c": [True]}
         self._force_draws(monkeypatch, [0, 0, 1])  # [A, A, B]
-        lower, upper = PassAtKAnalyzer().compute_confidence_interval(
-            results, k=1, n_bootstrap=1
-        )
+        lower, upper = PassAtKAnalyzer().compute_confidence_interval(results, k=1, n_bootstrap=1)
         # Hand-derived: mean of [1, 1, 0] = 2/3. The pre-fix implementation
         # collapsed the draw to {A, B} and reported 1/2.
         assert lower == pytest.approx(2 / 3)
@@ -175,9 +171,7 @@ class TestBootstrapMultiplicity:
     def test_draw_b_b_a_counts_b_twice(self, monkeypatch):
         results = {"a": [True], "b": [False], "c": [True]}
         self._force_draws(monkeypatch, [1, 1, 0])  # [B, B, A]
-        lower, upper = PassAtKAnalyzer().compute_confidence_interval(
-            results, k=1, n_bootstrap=1
-        )
+        lower, upper = PassAtKAnalyzer().compute_confidence_interval(results, k=1, n_bootstrap=1)
         assert lower == pytest.approx(1 / 3)
         assert upper == pytest.approx(1 / 3)
 
@@ -211,9 +205,7 @@ class TestBootstrapMultiplicity:
             for i, p in enumerate(rng.uniform(0.05, 0.95, size=12))
         }
         # Reference per-task scores via the public single-task function only.
-        scores = np.array([
-            pass_at_k(n_runs, sum(results[tid]), k) for tid in sorted(results)
-        ])
+        scores = np.array([pass_at_k(n_runs, sum(results[tid]), k) for tid in sorted(results)])
         n_boot = 20000
         ref_rng = np.random.default_rng(999)
         idx = ref_rng.integers(0, len(scores), size=(n_boot, len(scores)))

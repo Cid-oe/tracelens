@@ -160,21 +160,21 @@ class CalibrationAnalyzer:
             grader_score = outcome.score
             grader_passed = outcome.passed
 
-            pairs.append(CalibrationPair(
-                task_id=annotation.task_id,
-                grader_score=grader_score,
-                grader_passed=grader_passed,
-                human_score=annotation.human_score,
-                human_passed=annotation.human_passed,
-                score_delta=grader_score - annotation.human_score,
-                pass_agree=grader_passed == annotation.human_passed,
-            ))
+            pairs.append(
+                CalibrationPair(
+                    task_id=annotation.task_id,
+                    grader_score=grader_score,
+                    grader_passed=grader_passed,
+                    human_score=annotation.human_score,
+                    human_passed=annotation.human_passed,
+                    score_delta=grader_score - annotation.human_score,
+                    pass_agree=grader_passed == annotation.human_passed,
+                )
+            )
 
         return self._finalize(pairs)
 
-    def analyze_worksheet(
-        self, rows: list[Mapping[str, Any]]
-    ) -> CalibrationResult:
+    def analyze_worksheet(self, rows: list[Mapping[str, Any]]) -> CalibrationResult:
         """Compute calibration directly from a self-contained review worksheet.
 
         Each row carries the grader outcome (``grader_score``/``grader_passed``)
@@ -195,15 +195,17 @@ class CalibrationAnalyzer:
             hs = float(human_score)
             gp = bool(row.get("grader_passed"))
             hp = bool(row.get("human_passed"))
-            pairs.append(CalibrationPair(
-                task_id=str(row.get("task_id", "?")),
-                grader_score=gs,
-                grader_passed=gp,
-                human_score=hs,
-                human_passed=hp,
-                score_delta=gs - hs,
-                pass_agree=gp == hp,
-            ))
+            pairs.append(
+                CalibrationPair(
+                    task_id=str(row.get("task_id", "?")),
+                    grader_score=gs,
+                    grader_passed=gp,
+                    human_score=hs,
+                    human_passed=hp,
+                    score_delta=gs - hs,
+                    pass_agree=gp == hp,
+                )
+            )
         return self._finalize(pairs)
 
     def _finalize(self, pairs: list[CalibrationPair]) -> CalibrationResult:
