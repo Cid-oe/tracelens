@@ -70,9 +70,7 @@ class ExactMatchGrader(CodeGrader):
         expected = str(task.input_data["expected"]).strip()
         return {"exact_match": 1.0 if actual == expected else 0.0}
 
-    def determine_pass(
-        self, metrics: dict[str, float], task: Task
-    ) -> tuple[bool, float]:
+    def determine_pass(self, metrics: dict[str, float], task: Task) -> tuple[bool, float]:
         score = metrics["exact_match"]
         return score == 1.0, score
 
@@ -86,7 +84,9 @@ def build_eval_set() -> EvalSet:
         description="Trivial arithmetic eval — the smallest possible tracelens demo.",
         tasks=[
             Task(task_id="add-2-2", name="add 2+2", input_data={"a": 2, "b": 2, "expected": "4"}),
-            Task(task_id="add-10-5", name="add 10+5", input_data={"a": 10, "b": 5, "expected": "15"}),
+            Task(
+                task_id="add-10-5", name="add 10+5", input_data={"a": 10, "b": 5, "expected": "15"}
+            ),
             Task(task_id="add-7-8", name="add 7+8", input_data={"a": 7, "b": 8, "expected": "15"}),
         ],
     )
@@ -151,7 +151,7 @@ def _render_sample_report(generator: ReportGenerator, report: ReportData) -> str
         "",
         "## Graders",
         "",
-        "- `hello.exact_match` (`CodeGrader`): exact string match against `task.input_data[\"expected\"]`.",
+        '- `hello.exact_match` (`CodeGrader`): exact string match against `task.input_data["expected"]`.',
         "",
         "## CLI Markdown Output",
         "",
@@ -169,20 +169,22 @@ def _render_sample_report(generator: ReportGenerator, report: ReportData) -> str
             f"{delta:+.4f} | {result} |"
         )
 
-    lines.extend([
-        "",
-        "## Regression Result",
-        "",
-        f"- **Blocking regression**: {'yes' if blocks_ci else 'no'}",
-        "- **CI threshold**: moderate",
-        "- **Outcome**: CI would pass; no task regressed against the demo baseline.",
-        "",
-        "## CI Summary",
-        "",
-        "```text",
-        ci_summary,
-        "```",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Regression Result",
+            "",
+            f"- **Blocking regression**: {'yes' if blocks_ci else 'no'}",
+            "- **CI threshold**: moderate",
+            "- **Outcome**: CI would pass; no task regressed against the demo baseline.",
+            "",
+            "## CI Summary",
+            "",
+            "```text",
+            ci_summary,
+            "```",
+        ]
+    )
 
     return "\n".join(lines)
 
@@ -241,7 +243,11 @@ async def main(reports_dir: Path = DEFAULT_REPORTS_DIR) -> None:
         task_summary = summaries_by_task[task.task_id]
         trials = batch.get_trials_for_task(task_summary.task_id)
         representative = next((trial for trial in trials if trial.transcript), None)
-        output = representative.transcript.final_output if representative and representative.transcript else None
+        output = (
+            representative.transcript.final_output
+            if representative and representative.transcript
+            else None
+        )
         pass_rate = f"{task_summary.pass_rate:.0%}"
         print(
             f"  {task_summary.task_id:<24s} "
@@ -254,7 +260,9 @@ async def main(reports_dir: Path = DEFAULT_REPORTS_DIR) -> None:
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="The smallest possible tracelens run.")
     parser.add_argument(
-        "--reports-dir", type=Path, default=DEFAULT_REPORTS_DIR,
+        "--reports-dir",
+        type=Path,
+        default=DEFAULT_REPORTS_DIR,
         help=(
             "Where to write the JSON and Markdown reports "
             "(default: examples/reports, the checked-in sample)"

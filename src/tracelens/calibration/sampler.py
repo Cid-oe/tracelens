@@ -74,11 +74,7 @@ class ReviewWorksheet(BaseModel):
 
 def _gradeable_trials(batch: TrialBatch) -> list[Trial]:
     """Trials that have both a transcript and a grader score to review."""
-    return [
-        t
-        for t in batch.trials
-        if t.transcript is not None and t.aggregate_score is not None
-    ]
+    return [t for t in batch.trials if t.transcript is not None and t.aggregate_score is not None]
 
 
 def _excerpt(trial: Trial, max_chars: int) -> str:
@@ -104,9 +100,7 @@ def _diverse(trials: list[Trial], size: int) -> list[Trial]:
 
 def _boundary(trials: list[Trial], size: int) -> list[Trial]:
     """Pick the `size` trials whose score is closest to the pass threshold."""
-    ordered = sorted(
-        trials, key=lambda t: abs((t.aggregate_score or 0.0) - _PASS_THRESHOLD)
-    )
+    ordered = sorted(trials, key=lambda t: abs((t.aggregate_score or 0.0) - _PASS_THRESHOLD))
     return ordered[:size]
 
 
@@ -157,9 +151,7 @@ def sample_for_review(
         ValueError: If `strategy` is not a known strategy.
     """
     if strategy not in STRATEGIES:
-        raise ValueError(
-            f"Unknown sampling strategy {strategy!r}; choose from {STRATEGIES}"
-        )
+        raise ValueError(f"Unknown sampling strategy {strategy!r}; choose from {STRATEGIES}")
 
     trials = _gradeable_trials(batch)
 

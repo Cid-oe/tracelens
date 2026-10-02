@@ -337,9 +337,7 @@ def render_readme(requirement: str | None = None) -> str:
 
 def render_workflow(requirement: str | None = None) -> str:
     """The generated ``.github/workflows/eval.yml`` for the given requirement."""
-    return WORKFLOW_TEMPLATE.replace(
-        "__REQUIREMENT__", requirement or tracelens_requirement()
-    )
+    return WORKFLOW_TEMPLATE.replace("__REQUIREMENT__", requirement or tracelens_requirement())
 
 
 def add_init_parser(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]

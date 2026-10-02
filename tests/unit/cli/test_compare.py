@@ -69,14 +69,20 @@ class TestSavedFixtures:
 
     def test_latency_is_lower_is_better(self):
         result = compare_runs(
-            _batch(load("baseline")), _batch(load("improved")),
-            metric="fixture.latency_ms", direction="lower", threshold=50.0,
+            _batch(load("baseline")),
+            _batch(load("improved")),
+            metric="fixture.latency_ms",
+            direction="lower",
+            threshold=50.0,
         )
         assert result.verdict is Verdict.IMPROVEMENT
         assert result.raw_delta == pytest.approx(-200.0) and result.delta == pytest.approx(200.0)
         slower = compare_runs(
-            _batch(load("baseline")), _batch(load("regressed")),
-            metric="fixture.latency_ms", direction="lower", threshold=50.0,
+            _batch(load("baseline")),
+            _batch(load("regressed")),
+            metric="fixture.latency_ms",
+            direction="lower",
+            threshold=50.0,
         )
         assert slower.verdict is Verdict.REGRESSION
 
@@ -140,8 +146,10 @@ class TestCommand:
         [
             (["missing.json", str(IMPROVED)], "trials file not found"),
             ([str(BASELINE), str(IMPROVED), "--metric", "speed"], "unknown metric 'speed'"),
-            ([str(BASELINE), str(IMPROVED), "--metric", "pass_rate", "--direction", "lower"],
-             "always higher-is-better"),
+            (
+                [str(BASELINE), str(IMPROVED), "--metric", "pass_rate", "--direction", "lower"],
+                "always higher-is-better",
+            ),
             ([str(BASELINE), str(IMPROVED), "--threshold", "-1"], "threshold cannot be negative"),
         ],
     )
@@ -168,9 +176,22 @@ class TestCommand:
     def test_real_process_stdout_is_the_summary_only(self, tmp_path: Path):
         target = tmp_path / "compare.json"
         result = subprocess.run(
-            [sys.executable, "-m", "tracelens.cli.main", "compare", str(BASELINE), str(REGRESSED),
-             "--output", str(target), "--top", "2"],
-            cwd=Path(__file__).resolve().parents[3], capture_output=True, text=True, timeout=120,
+            [
+                sys.executable,
+                "-m",
+                "tracelens.cli.main",
+                "compare",
+                str(BASELINE),
+                str(REGRESSED),
+                "--output",
+                str(target),
+                "--top",
+                "2",
+            ],
+            cwd=Path(__file__).resolve().parents[3],
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
         assert result.returncode == 1, result.stdout + result.stderr
         assert "Traceback" not in result.stderr

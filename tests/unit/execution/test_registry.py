@@ -10,12 +10,14 @@ class TestLoadClass:
         """Can load a class from stdlib."""
         cls = load_class("collections.OrderedDict")
         from collections import OrderedDict
+
         assert cls is OrderedDict
 
     def test_load_project_class(self):
         """Can load a class from tracelens itself."""
         cls = load_class("tracelens.core.task.Task")
         from tracelens.core.task import Task
+
         assert cls is Task
 
     def test_invalid_path_no_module(self):
@@ -43,6 +45,7 @@ class TestInstantiate:
             input_data={"a": 1},
         )
         from tracelens.core.task import Task
+
         assert isinstance(obj, Task)
         assert obj.name == "Test"
 
@@ -50,4 +53,5 @@ class TestInstantiate:
         """Can instantiate a class with no arguments."""
         obj = instantiate("collections.OrderedDict")
         from collections import OrderedDict
+
         assert isinstance(obj, OrderedDict)

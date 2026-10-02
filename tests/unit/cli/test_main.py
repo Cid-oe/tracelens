@@ -14,12 +14,18 @@ class TestBuildParser:
     def test_run_required_args(self):
         """Run command requires eval-set, adapter, and graders."""
         parser = build_parser()
-        args = parser.parse_args([
-            "run",
-            "--eval-set", "tasks.json",
-            "--adapter", "my.Adapter",
-            "--graders", "my.Grader1", "my.Grader2",
-        ])
+        args = parser.parse_args(
+            [
+                "run",
+                "--eval-set",
+                "tasks.json",
+                "--adapter",
+                "my.Adapter",
+                "--graders",
+                "my.Grader1",
+                "my.Grader2",
+            ]
+        )
         assert args.command == "run"
         assert args.eval_set == "tasks.json"
         assert args.adapter == "my.Adapter"
@@ -29,15 +35,24 @@ class TestBuildParser:
         """Omitted run flags stay out of the namespace so they cannot shadow a
         --config value; the resolver supplies the built-in defaults."""
         parser = build_parser()
-        args = parser.parse_args([
-            "run",
-            "--eval-set", "tasks.json",
-            "--adapter", "my.Adapter",
-            "--graders", "my.Grader",
-        ])
+        args = parser.parse_args(
+            [
+                "run",
+                "--eval-set",
+                "tasks.json",
+                "--adapter",
+                "my.Adapter",
+                "--graders",
+                "my.Grader",
+            ]
+        )
         assert vars(args) == {
-            "command": "run", "debug": False, "config": None,
-            "eval_set": "tasks.json", "adapter": "my.Adapter", "graders": ["my.Grader"],
+            "command": "run",
+            "debug": False,
+            "config": None,
+            "eval_set": "tasks.json",
+            "adapter": "my.Adapter",
+            "graders": ["my.Grader"],
         }
         resolved, import_root = resolve_run_settings(args)
         assert import_root is None
@@ -53,21 +68,34 @@ class TestBuildParser:
     def test_run_with_all_options(self):
         """Run command accepts all optional args."""
         parser = build_parser()
-        args = parser.parse_args([
-            "run",
-            "--eval-set", "tasks.json",
-            "--adapter", "my.Adapter",
-            "--graders", "my.Grader",
-            "--num-runs", "5",
-            "--max-concurrency", "10",
-            "--timeout", "60",
-            "--baseline-check",
-            "--baselines-file", "baselines.json",
-            "--fail-on-regression", "severe",
-            "--output", "results.json",
-            "--report", "report.md",
-            "--max-infra-retries", "2",
-        ])
+        args = parser.parse_args(
+            [
+                "run",
+                "--eval-set",
+                "tasks.json",
+                "--adapter",
+                "my.Adapter",
+                "--graders",
+                "my.Grader",
+                "--num-runs",
+                "5",
+                "--max-concurrency",
+                "10",
+                "--timeout",
+                "60",
+                "--baseline-check",
+                "--baselines-file",
+                "baselines.json",
+                "--fail-on-regression",
+                "severe",
+                "--output",
+                "results.json",
+                "--report",
+                "report.md",
+                "--max-infra-retries",
+                "2",
+            ]
+        )
         assert args.num_runs == 5
         assert args.max_concurrency == 10
         assert args.timeout == 60.0
@@ -81,10 +109,13 @@ class TestBuildParser:
     def test_report_required_args(self):
         """Report command requires results file."""
         parser = build_parser()
-        args = parser.parse_args([
-            "report",
-            "--results", "results.json",
-        ])
+        args = parser.parse_args(
+            [
+                "report",
+                "--results",
+                "results.json",
+            ]
+        )
         assert args.command == "report"
         assert args.results == "results.json"
         assert args.format == "markdown"
@@ -97,11 +128,15 @@ class TestBuildParser:
     def test_report_json_format(self):
         """Report command accepts JSON format."""
         parser = build_parser()
-        args = parser.parse_args([
-            "report",
-            "--results", "results.json",
-            "--format", "json",
-        ])
+        args = parser.parse_args(
+            [
+                "report",
+                "--results",
+                "results.json",
+                "--format",
+                "json",
+            ]
+        )
         assert args.format == "json"
 
     def test_missing_command(self):
@@ -123,12 +158,17 @@ class TestCalibrateParser:
     def test_calibrate_required_args(self):
         """Calibrate command requires grader, samples, and annotations."""
         parser = build_parser()
-        args = parser.parse_args([
-            "calibrate",
-            "--grader", "my.graders.QualityGrader",
-            "--samples", "samples.json",
-            "--annotations", "human_grades.json",
-        ])
+        args = parser.parse_args(
+            [
+                "calibrate",
+                "--grader",
+                "my.graders.QualityGrader",
+                "--samples",
+                "samples.json",
+                "--annotations",
+                "human_grades.json",
+            ]
+        )
         assert args.command == "calibrate"
         assert args.grader == "my.graders.QualityGrader"
         assert args.samples == "samples.json"
@@ -137,12 +177,17 @@ class TestCalibrateParser:
     def test_calibrate_defaults(self):
         """Calibrate command has sensible defaults."""
         parser = build_parser()
-        args = parser.parse_args([
-            "calibrate",
-            "--grader", "my.Grader",
-            "--samples", "s.json",
-            "--annotations", "a.json",
-        ])
+        args = parser.parse_args(
+            [
+                "calibrate",
+                "--grader",
+                "my.Grader",
+                "--samples",
+                "s.json",
+                "--annotations",
+                "a.json",
+            ]
+        )
         assert args.threshold == 0.7
         assert args.output is None
         assert args.transcripts is None
@@ -151,15 +196,23 @@ class TestCalibrateParser:
     def test_calibrate_with_all_options(self):
         """Calibrate command accepts all optional args."""
         parser = build_parser()
-        args = parser.parse_args([
-            "calibrate",
-            "--grader", "my.Grader",
-            "--samples", "s.json",
-            "--annotations", "a.json",
-            "--transcripts", "transcripts.json",
-            "--threshold", "0.8",
-            "--output", "cal.json",
-        ])
+        args = parser.parse_args(
+            [
+                "calibrate",
+                "--grader",
+                "my.Grader",
+                "--samples",
+                "s.json",
+                "--annotations",
+                "a.json",
+                "--transcripts",
+                "transcripts.json",
+                "--threshold",
+                "0.8",
+                "--output",
+                "cal.json",
+            ]
+        )
         assert args.threshold == 0.8
         assert args.transcripts == "transcripts.json"
         assert args.output == "cal.json"
@@ -194,14 +247,21 @@ class TestCmdCalibrateIntegration:
         self._write_json(samples_path, [])
 
         parser = build_parser()
-        args = parser.parse_args([
-            "calibrate",
-            "--grader", "tracelens.core.grader.Grader",
-            "--samples", str(samples_path),
-            "--annotations", str(ann_path),
-            "--results", str(res_path),
-            "--output", str(out_path),
-        ])
+        args = parser.parse_args(
+            [
+                "calibrate",
+                "--grader",
+                "tracelens.core.grader.Grader",
+                "--samples",
+                str(samples_path),
+                "--annotations",
+                str(ann_path),
+                "--results",
+                str(res_path),
+                "--output",
+                str(out_path),
+            ]
+        )
         exit_code = cmd_calibrate(args)
 
         assert out_path.exists()
@@ -222,10 +282,15 @@ class TestCmdCalibrateIntegration:
         self._write_json(samples_path, [])
 
         parser = build_parser()
-        args = parser.parse_args([
-            "calibrate",
-            "--grader", "tracelens.core.grader.Grader",
-            "--samples", str(samples_path),
-            "--annotations", str(ann_path),
-        ])
+        args = parser.parse_args(
+            [
+                "calibrate",
+                "--grader",
+                "tracelens.core.grader.Grader",
+                "--samples",
+                str(samples_path),
+                "--annotations",
+                str(ann_path),
+            ]
+        )
         assert cmd_calibrate(args) == 2
