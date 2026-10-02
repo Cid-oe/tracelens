@@ -53,15 +53,24 @@ def _trial(
     """A trial with one outcome for ``grader`` (and optional extra graders)."""
     trial = Trial(task_id=task_id, run_index=run_index, status=status)
     if passed is not None:
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id, grader_id=grader, passed=passed,
-            score=(1.0 if passed else 0.0) if score is None else score,
-            metrics=metrics or {},
-        ))
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id=grader,
+                passed=passed,
+                score=(1.0 if passed else 0.0) if score is None else score,
+                metrics=metrics or {},
+            )
+        )
     for other, (other_passed, other_score) in (extra or {}).items():
-        trial.add_outcome(Outcome(
-            trial_id=trial.trial_id, grader_id=other, passed=other_passed, score=other_score,
-        ))
+        trial.add_outcome(
+            Outcome(
+                trial_id=trial.trial_id,
+                grader_id=other,
+                passed=other_passed,
+                score=other_score,
+            )
+        )
     return trial
 
 
@@ -160,10 +169,15 @@ class TestMetricSelector:
         assert pass_rate.value(_trial("t", 0, passed=True, status=TrialStatus.INFRA_ERROR)) is None
         assert pass_rate.value(_trial("t", 0, status=TrialStatus.PENDING)) is None
         # mean_score: trial aggregate, or the grader's own score, or nothing
-        assert score.value(_trial("t", 0, passed=True, score=0.4, extra={"h": (True, 0.8)})) == pytest.approx(0.6)
-        assert MetricSelector.parse("mean_score", grader="h").value(
+        assert score.value(
             _trial("t", 0, passed=True, score=0.4, extra={"h": (True, 0.8)})
-        ) == 0.8
+        ) == pytest.approx(0.6)
+        assert (
+            MetricSelector.parse("mean_score", grader="h").value(
+                _trial("t", 0, passed=True, score=0.4, extra={"h": (True, 0.8)})
+            )
+            == 0.8
+        )
         assert score.value(timeout) is None
         # outcome metrics: missing or non-finite means no value
         assert latency.value(_trial("t", 0, passed=True, metrics={"latency": 120.0})) == 120.0
@@ -189,7 +203,8 @@ class TestPairedTaskEffect:
         diffs = [0.31, -0.07, 0.12, 0.25, -0.2, 0.05, 0.4]
         delta = sum(diffs) / len(diffs)
         count = sum(
-            1 for signs in product((-1, 1), repeat=len(diffs))
+            1
+            for signs in product((-1, 1), repeat=len(diffs))
             if abs(sum(s * abs(d) for s, d in zip(signs, diffs, strict=True)) / len(diffs))
             >= abs(delta) - 1e-12
         )
@@ -234,10 +249,17 @@ class TestPairedTaskEffect:
 # --- decide ---------------------------------------------------------------------
 
 
-def _effect(delta: float | None, lo: float | None, hi: float | None, tasks: int = 5) -> PairedEffect:
+def _effect(
+    delta: float | None, lo: float | None, hi: float | None, tasks: int = 5
+) -> PairedEffect:
     return PairedEffect(
-        tasks=tasks, delta=delta, ci_lower=lo, ci_upper=hi,
-        confidence=0.95, n_bootstrap=10, seed=0,
+        tasks=tasks,
+        delta=delta,
+        ci_lower=lo,
+        ci_upper=hi,
+        confidence=0.95,
+        n_bootstrap=10,
+        seed=0,
     )
 
 
@@ -278,7 +300,9 @@ class TestCompareRuns:
         assert result.delta == pytest.approx((0.5 - 0.5 + 0.5) / 3)
         # sorted by |delta| descending, then task id
         assert [(r.task_id, r.delta) for r in result.per_task] == [
-            ("t1", 0.5), ("t2", -0.5), ("t3", 0.5)
+            ("t1", 0.5),
+            ("t2", -0.5),
+            ("t3", 0.5),
         ]
         assert result.per_task[0].n_baseline == 2 and result.per_task[0].baseline == 0.5
         # every sign assignment of (0.5, 0.5, 0.5) is at least as extreme: p = 1
@@ -339,20 +363,35 @@ class TestCompareRuns:
             return b
 
         result = compare_runs(
-            batch(1000.0), batch(900.0), metric="g.latency_ms", direction="lower",
-            threshold=50.0, n_bootstrap=64,
+            batch(1000.0),
+            batch(900.0),
+            metric="g.latency_ms",
+            direction="lower",
+            threshold=50.0,
+            n_bootstrap=64,
         )
         assert result.delta == pytest.approx(100.0) and result.raw_delta == pytest.approx(-100.0)
         assert result.verdict is Verdict.IMPROVEMENT
         assert result.direction is Direction.LOWER and result.grader is None
         slower = compare_runs(
-            batch(900.0), batch(1000.0), metric="g.latency_ms", direction="lower",
-            threshold=50.0, n_bootstrap=64,
+            batch(900.0),
+            batch(1000.0),
+            metric="g.latency_ms",
+            direction="lower",
+            threshold=50.0,
+            n_bootstrap=64,
         )
         assert slower.verdict is Verdict.REGRESSION and slower.exit_code == 1
-        assert any("set --threshold on the scale" in n for n in compare_runs(
-            batch(900.0), batch(1000.0), metric="g.latency_ms", direction="lower", n_bootstrap=64
-        ).notes)
+        assert any(
+            "set --threshold on the scale" in n
+            for n in compare_runs(
+                batch(900.0),
+                batch(1000.0),
+                metric="g.latency_ms",
+                direction="lower",
+                n_bootstrap=64,
+            ).notes
+        )
 
     def test_missing_evidence_is_excluded_and_counted_not_zero(self):
         baseline = _pass_batch({"a": [True, True], "b": [True, False], "c": [False, False]})
@@ -365,7 +404,10 @@ class TestCompareRuns:
         candidate.provenance = _provenance(["a", "b", "c"])
         result = compare_runs(baseline, candidate, n_bootstrap=64)
         assert result.candidate.excluded == {
-            "infra_error": 2, "grader_error": 0, "not_run": 1, "no_value": 0,
+            "infra_error": 2,
+            "grader_error": 0,
+            "not_run": 1,
+            "no_value": 0,
         }
         assert result.candidate.trials_gradable == 2
         assert result.alignment.excluded_no_value_candidate == ["c"]
@@ -381,7 +423,9 @@ class TestCompareRuns:
             b.provenance = _provenance(["t", "u"])
             return b
 
-        result = compare_runs(batch([1.0, math.nan, math.inf]), batch([2.0]), metric="g.m", n_bootstrap=64)
+        result = compare_runs(
+            batch([1.0, math.nan, math.inf]), batch([2.0]), metric="g.m", n_bootstrap=64
+        )
         assert result.baseline.excluded["no_value"] == 2
         assert [r for r in result.per_task if r.task_id == "t"][0].n_baseline == 1
 
@@ -397,7 +441,9 @@ class TestCompareRuns:
     def test_added_and_removed_tasks_follow_the_same_policy(self):
         baseline = _pass_batch({"a": [True], "b": [True]})
         candidate = _pass_batch({"a": [True], "c": [True]})
-        with pytest.raises(ComparisonError, match="1 only in baseline \\(b\\); 1 only in candidate \\(c\\)"):
+        with pytest.raises(
+            ComparisonError, match="1 only in baseline \\(b\\); 1 only in candidate \\(c\\)"
+        ):
             compare_runs(baseline, candidate)
         result = compare_runs(baseline, candidate, unmatched_tasks="exclude", n_bootstrap=64)
         assert result.alignment.excluded_only_baseline == ["b"]
@@ -439,7 +485,8 @@ class TestCompareRuns:
         empty = compare_runs(
             _pass_batch({"a": [True]}, hashes={"a": "x"}),
             _pass_batch({"a": [True]}, hashes={"a": "y"}),
-            unmatched_tasks="exclude", observe=True,
+            unmatched_tasks="exclude",
+            observe=True,
         )
         assert empty.delta is None and empty.exit_code == 2
 
@@ -455,9 +502,13 @@ class TestCompareRuns:
     def test_summary_lines_carry_the_json_facts(self):
         baseline = _pass_batch({"a": [True, False], "b": [True, True], "c": [False, False]})
         candidate = _pass_batch({"a": [True, True], "b": [True, True], "c": [True, True]})
-        result = compare_runs(baseline, candidate, n_bootstrap=64, baseline_label="v1", candidate_label="v2")
+        result = compare_runs(
+            baseline, candidate, n_bootstrap=64, baseline_label="v1", candidate_label="v2"
+        )
         text = "\n".join(result.summary_lines(top=1))
-        assert text.startswith("Compared v2 vs v1 on pass_rate (higher is better): paired task bootstrap over 3 task(s)")
+        assert text.startswith(
+            "Compared v2 vs v1 on pass_rate (higher is better): paired task bootstrap over 3 task(s)"
+        )
         assert f"delta = {result.delta:+.4f}" in text
         assert f"(B = {result.n_bootstrap}, seed = {result.seed})" in text
         assert f"(exit {result.exit_code})" in text

@@ -52,57 +52,90 @@ def add_inspect_parser(subparsers: argparse._SubParsersAction) -> None:  # type:
     )
     parser.add_argument("trials", help="Trials JSON from 'tracelens run --save-trials'")
     parser.add_argument(
-        "--failures", action="store_true",
+        "--failures",
+        action="store_true",
         help="Show agent failures, infra errors, and grader errors (the default)",
     )
     parser.add_argument(
-        "--all", action="store_true", help="Show every trial, passed ones included",
+        "--all",
+        action="store_true",
+        help="Show every trial, passed ones included",
     )
     parser.add_argument(
-        "--kind", nargs="+", choices=list(KIND_FLAGS), default=None, metavar="KIND",
+        "--kind",
+        nargs="+",
+        choices=list(KIND_FLAGS),
+        default=None,
+        metavar="KIND",
         help=(
             "Show only these kinds: agent, infra, grader, not-run, passed "
             "(overrides --failures/--all)"
         ),
     )
     parser.add_argument(
-        "--task-id", nargs="+", default=None, dest="task_ids", metavar="ID",
+        "--task-id",
+        nargs="+",
+        default=None,
+        dest="task_ids",
+        metavar="ID",
         help="Show only these tasks",
     )
     parser.add_argument(
-        "--grader", nargs="+", default=None, dest="grader_ids", metavar="GRADER_ID",
+        "--grader",
+        nargs="+",
+        default=None,
+        dest="grader_ids",
+        metavar="GRADER_ID",
         help="Show only trials that these graders failed or crashed on",
     )
     parser.add_argument(
-        "--eval-set", default=None, dest="eval_set",
+        "--eval-set",
+        default=None,
+        dest="eval_set",
         help="Eval set the run used; adds each task's name, input, and expected output",
     )
     parser.add_argument(
-        "--eval-set-format", choices=EVAL_SET_FORMATS, default=None, dest="eval_set_format",
+        "--eval-set-format",
+        choices=EVAL_SET_FORMATS,
+        default=None,
+        dest="eval_set_format",
         help="Format of --eval-set (inferred from the suffix; required for a directory)",
     )
     parser.add_argument(
-        "--max-steps", type=int, default=DEFAULT_MAX_STEPS, dest="max_steps",
+        "--max-steps",
+        type=int,
+        default=DEFAULT_MAX_STEPS,
+        dest="max_steps",
         help=f"Transcript steps to show per trial (default: {DEFAULT_MAX_STEPS})",
     )
     parser.add_argument(
-        "--max-chars", type=int, default=DEFAULT_MAX_CHARS, dest="max_chars",
+        "--max-chars",
+        type=int,
+        default=DEFAULT_MAX_CHARS,
+        dest="max_chars",
         help=f"Characters to show per field (default: {DEFAULT_MAX_CHARS})",
     )
     parser.add_argument(
-        "--full", action="store_true",
+        "--full",
+        action="store_true",
         help="No bounds: embed complete transcripts (may include sensitive content)",
     )
     parser.add_argument(
-        "--limit", type=int, default=None,
+        "--limit",
+        type=int,
+        default=None,
         help="Show at most this many trials (the count of matches is always reported)",
     )
     parser.add_argument(
-        "--html", default=None, metavar="PATH",
+        "--html",
+        default=None,
+        metavar="PATH",
         help="Also write a self-contained HTML drilldown (works offline)",
     )
     parser.add_argument(
-        "--json", default=None, metavar="PATH",
+        "--json",
+        default=None,
+        metavar="PATH",
         help="Also write the inspection as JSON (the same fields the text shows)",
     )
 
@@ -126,7 +159,8 @@ def _load_batch(path: str, *, debug: bool) -> TrialBatch | int:
         return usage_error(
             f"{path} is not a valid trials file (expected 'tracelens run --save-trials' "
             f"output): {exc}",
-            exc=exc, debug=debug,
+            exc=exc,
+            debug=debug,
         )
 
 

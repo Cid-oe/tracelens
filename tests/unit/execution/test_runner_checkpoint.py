@@ -67,9 +67,7 @@ class _GraderA(CodeGrader):
     def compute_metrics(self, transcript: Transcript, task: Task) -> dict[str, float]:
         return {"a": 1.0}
 
-    def determine_pass(
-        self, metrics: dict[str, float], task: Task
-    ) -> tuple[bool, float]:
+    def determine_pass(self, metrics: dict[str, float], task: Task) -> tuple[bool, float]:
         return True, 1.0
 
 
@@ -80,9 +78,7 @@ class _GraderB(CodeGrader):
     def compute_metrics(self, transcript: Transcript, task: Task) -> dict[str, float]:
         return {"b": 1.0}
 
-    def determine_pass(
-        self, metrics: dict[str, float], task: Task
-    ) -> tuple[bool, float]:
+    def determine_pass(self, metrics: dict[str, float], task: Task) -> tuple[bool, float]:
         return True, 1.0
 
 
@@ -156,9 +152,7 @@ def test_resume_reruns_incomplete_trials(tmp_path: Path) -> None:
 
     adapter = _CountingAdapter()
     batch = asyncio.run(
-        _runner(adapter, checkpoint).run(
-            EvalSet(name="s", tasks=[_task("a"), _task("b")])
-        )
+        _runner(adapter, checkpoint).run(EvalSet(name="s", tasks=[_task("a"), _task("b")]))
     )
 
     assert adapter.run_calls == ["b"]
@@ -196,9 +190,7 @@ def test_resume_still_skips_timeout_trials(tmp_path: Path) -> None:
 
     adapter = _CountingAdapter()
     batch = asyncio.run(
-        _runner(adapter, checkpoint).run(
-            EvalSet(name="s", tasks=[_task("a"), _task("b")])
-        )
+        _runner(adapter, checkpoint).run(EvalSet(name="s", tasks=[_task("a"), _task("b")]))
     )
 
     assert adapter.run_calls == []
@@ -219,9 +211,7 @@ def test_legacy_checkpoint_warns_but_loads(
 
     adapter = _CountingAdapter()
     with caplog.at_level(logging.WARNING):
-        batch = asyncio.run(
-            _runner(adapter, checkpoint).run(EvalSet(name="s", tasks=[_task("a")]))
-        )
+        batch = asyncio.run(_runner(adapter, checkpoint).run(EvalSet(name="s", tasks=[_task("a")])))
 
     assert adapter.run_calls == []
     assert batch.total_count == 1
@@ -251,9 +241,7 @@ def test_mismatched_eval_set_refuses_resume(tmp_path: Path) -> None:
     checkpoint = tmp_path / "checkpoint.json"
 
     asyncio.run(
-        _runner(_CountingAdapter(), checkpoint).run(
-            EvalSet(name="s", tasks=[_task("a", x=1)])
-        )
+        _runner(_CountingAdapter(), checkpoint).run(EvalSet(name="s", tasks=[_task("a", x=1)]))
     )
 
     runner = _runner(_CountingAdapter(), checkpoint)
@@ -264,9 +252,7 @@ def test_mismatched_eval_set_refuses_resume(tmp_path: Path) -> None:
 def test_malformed_identity_raises_clear_error(tmp_path: Path) -> None:
     checkpoint = tmp_path / "checkpoint.json"
     checkpoint.write_text(
-        json.dumps(
-            {"version": 1, "identity": "garbage", "batch": TrialBatch().to_dict()}
-        )
+        json.dumps({"version": 1, "identity": "garbage", "batch": TrialBatch().to_dict()})
     )
 
     runner = _runner(_CountingAdapter(), checkpoint)
@@ -278,9 +264,7 @@ def test_mismatched_graders_refuse_resume(tmp_path: Path) -> None:
     checkpoint = tmp_path / "checkpoint.json"
     eval_set = EvalSet(name="s", tasks=[_task("a")])
 
-    asyncio.run(
-        _runner(_CountingAdapter(), checkpoint, graders=[_GraderA()]).run(eval_set)
-    )
+    asyncio.run(_runner(_CountingAdapter(), checkpoint, graders=[_GraderA()]).run(eval_set))
 
     runner = _runner(_CountingAdapter(), checkpoint, graders=[_GraderB()])
     with pytest.raises(CheckpointError, match="graders"):
@@ -304,15 +288,11 @@ def test_grader_order_change_still_resumes(tmp_path: Path) -> None:
     eval_set = EvalSet(name="s", tasks=[_task("a")])
 
     asyncio.run(
-        _runner(_CountingAdapter(), checkpoint, graders=[_GraderA(), _GraderB()]).run(
-            eval_set
-        )
+        _runner(_CountingAdapter(), checkpoint, graders=[_GraderA(), _GraderB()]).run(eval_set)
     )
 
     second = _CountingAdapter()
-    batch = asyncio.run(
-        _runner(second, checkpoint, graders=[_GraderB(), _GraderA()]).run(eval_set)
-    )
+    batch = asyncio.run(_runner(second, checkpoint, graders=[_GraderB(), _GraderA()]).run(eval_set))
 
     assert second.run_calls == []
     assert batch.total_count == 1
@@ -348,11 +328,15 @@ def test_envelope_without_identity_is_corrupt(tmp_path: Path) -> None:
 
 def test_unknown_checkpoint_version_raises(tmp_path: Path) -> None:
     ckpt = tmp_path / "c.json"
-    ckpt.write_text(json.dumps({
-        "version": 99,
-        "identity": {"eval_set_hash": "x", "adapter": "a", "graders": []},
-        "batch": TrialBatch().to_dict(),
-    }))
+    ckpt.write_text(
+        json.dumps(
+            {
+                "version": 99,
+                "identity": {"eval_set_hash": "x", "adapter": "a", "graders": []},
+                "batch": TrialBatch().to_dict(),
+            }
+        )
+    )
 
     runner = _runner(_CountingAdapter(), ckpt)
     with pytest.raises(CheckpointError, match="version"):
@@ -418,3 +402,34 @@ def test_resume_reruns_skipped_trials(tmp_path: Path) -> None:
 
     assert adapter.run_calls == ["t1"]  # re-ran, not skipped
     assert all(t.status != TrialStatus.SKIPPED for t in batch.trials)
+
+
+class _FailingAdapter(AgentAdapter):
+    async def run(self, task: Task) -> Transcript:
+        raise ValueError(f"SECRET_KEY_12345: failed on {task.task_id}")
+
+
+def test_runner_logs_exception_class_without_secret_message(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    eval_set = EvalSet(name="s", tasks=[_task("t_fail")])
+    runner = EvaluationRunner(
+        _FailingAdapter(),
+        [],
+        RunnerConfig(),
+    )
+    with caplog.at_level(logging.ERROR):
+        batch = asyncio.run(runner.run(eval_set))
+
+    assert batch.trials[0].status == TrialStatus.FAILED
+    assert "SECRET_KEY_12345" in batch.trials[0].error_message
+
+    # Root / runner logger records type summary, not the raw secret message
+    error_records = [r.message for r in caplog.records if r.levelno == logging.ERROR]
+    assert any(
+        "Agent execution failed for task t_fail run 0: ValueError" in msg for msg in error_records
+    )
+    assert not any("SECRET_KEY_12345" in msg for msg in error_records)
+
+    # error_traceback contains relative paths
+    assert "test_runner_checkpoint.py" in batch.trials[0].error_traceback

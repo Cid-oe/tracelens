@@ -27,9 +27,14 @@ class _Agent(AgentAdapter):
         if behaviour == "slow":
             await asyncio.sleep(0.5)
         transcript = Transcript(task_id=task.task_id)
-        transcript.add_step(TranscriptStep(
-            step_type=StepType.LLM_CALL, content="thinking " * 80, tokens_in=10, tokens_out=5,
-        ))
+        transcript.add_step(
+            TranscriptStep(
+                step_type=StepType.LLM_CALL,
+                content="thinking " * 80,
+                tokens_in=10,
+                tokens_out=5,
+            )
+        )
         transcript.final_output = {"answer": "4" if behaviour == "pass" else "5"}
         return transcript
 
@@ -50,8 +55,13 @@ class _Grader(CodeGrader):
 
 def _tasks() -> list[Task]:
     return [
-        Task(task_id=f"t-{b}", name=f"{b} task", input_data={"behaviour": b},
-             metadata={"expected": "4"}, expectation=TaskExpectation(expected_output="4"))
+        Task(
+            task_id=f"t-{b}",
+            name=f"{b} task",
+            input_data={"behaviour": b},
+            metadata={"expected": "4"},
+            expectation=TaskExpectation(expected_output="4"),
+        )
         for b in ("pass", "fail", "infra", "crash", "slow")
     ]
 
@@ -106,7 +116,16 @@ def test_filters_do_not_conflate_kinds(artifacts, capsys):
 
 
 def test_eval_set_adds_expected_name_and_input(artifacts, capsys):
-    assert _run(str(artifacts["trials"]), "--task-id", "t-fail", "--eval-set", str(artifacts["eval_set"])) == 0
+    assert (
+        _run(
+            str(artifacts["trials"]),
+            "--task-id",
+            "t-fail",
+            "--eval-set",
+            str(artifacts["eval_set"]),
+        )
+        == 0
+    )
     out = capsys.readouterr().out
     assert "task:     fail task" in out
     assert 'input:    {"behaviour": "fail"}' in out
@@ -117,15 +136,25 @@ def test_eval_set_adds_expected_name_and_input(artifacts, capsys):
 def test_html_json_limit_and_full(artifacts, capsys):
     html = artifacts["root"] / "out" / "failures.html"
     data = artifacts["root"] / "out" / "failures.json"
-    assert _run(str(artifacts["trials"]), "--limit", "1", "--html", str(html), "--json", str(data)) == 0
+    assert (
+        _run(str(artifacts["trials"]), "--limit", "1", "--html", str(html), "--json", str(data))
+        == 0
+    )
     captured = capsys.readouterr()
-    assert "Selected 4 trial(s) (kinds: agent failure, infra error, grader error); showing the first 1" in captured.out
+    assert (
+        "Selected 4 trial(s) (kinds: agent failure, infra error, grader error); showing the first 1"
+        in captured.out
+    )
     assert f"[tracelens] wrote inspection html: {html}" in captured.err
     assert f"[tracelens] wrote inspection json: {data}" in captured.err
     page = html.read_text()
     assert page.startswith("<!DOCTYPE html>") and "t-crash" in page and "src=" not in page
     record = json.loads(data.read_text())
-    assert record["selected"] == 4 and record["shown"] == 1 and record["trials"][0]["task_id"] == "t-crash"
+    assert (
+        record["selected"] == 4
+        and record["shown"] == 1
+        and record["trials"][0]["task_id"] == "t-crash"
+    )
     assert _run(str(artifacts["trials"]), "--task-id", "t-fail", "--full") == 0
     out = capsys.readouterr().out
     assert "more characters" not in out and "Unbounded output (--full)" in out
@@ -156,9 +185,19 @@ def test_results_file_is_rejected(artifacts, capsys):
 
 def test_real_process_prints_the_report_only(artifacts):
     result = subprocess.run(
-        [sys.executable, "-m", "tracelens.cli.main", "inspect", str(artifacts["trials"]),
-         "--kind", "grader"],
-        cwd=Path(__file__).resolve().parents[3], capture_output=True, text=True, timeout=120,
+        [
+            sys.executable,
+            "-m",
+            "tracelens.cli.main",
+            "inspect",
+            str(artifacts["trials"]),
+            "--kind",
+            "grader",
+        ],
+        cwd=Path(__file__).resolve().parents[3],
+        capture_output=True,
+        text=True,
+        timeout=120,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.startswith("Inspected ") and "t-crash" in result.stdout

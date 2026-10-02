@@ -181,9 +181,7 @@ class ContainsGrader(CodeGrader):
         text = str(transcript.final_output)
 
         required_hits = sum(1 for r in self.required if r in text)
-        required_ratio = (
-            required_hits / len(self.required) if self.required else 1.0
-        )
+        required_ratio = required_hits / len(self.required) if self.required else 1.0
 
         forbidden_hits = sum(1 for f in self.forbidden if f in text)
 
@@ -230,8 +228,7 @@ class RegexMatchGrader(CodeGrader):
                 re.compile(p)
             except re.error as exc:
                 raise ValueError(
-                    f"RegexMatchGrader '{grader_id}': pattern[{i}] is invalid: "
-                    f"'{p}' -- {exc}"
+                    f"RegexMatchGrader '{grader_id}': pattern[{i}] is invalid: '{p}' -- {exc}"
                 ) from exc
         self.patterns = patterns
 
