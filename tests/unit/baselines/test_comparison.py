@@ -249,6 +249,23 @@ class TestRegressionDetector:
         assert reg.p_value is not None
         assert reg.insufficient_data is False
 
+    def test_single_observation_against_one_trial_baseline_is_insufficient_data(self):
+        """Issue #118: a single observation against a single baseline trial has no dispersion.
+        It must report insufficient_data with p_value=None, not a fabricated p=0.0."""
+        detector = RegressionDetector()
+        baseline = TaskBaseline(task_id="t1")
+        baseline.add_metric("pass_rate", value=1.0, std=0.0, sample_size=1)
+
+        current_results = [{"pass_rate": 0.0}]
+        report = detector.compare(baseline, current_results)
+
+        assert report.has_regression is True
+        reg = report.regressions[0]
+        assert reg.p_value is None
+        assert reg.insufficient_data is True
+        assert reg.severity == RegressionSeverity.SEVERE
+        assert report.should_block_ci(RegressionSeverity.MODERATE) is True
+
 
 # --- Noise-aware regression detection (Track 2 / Anthropic infra-noise) ---
 
@@ -376,10 +393,13 @@ class TestNoiseAwareRegression:
         assert report.should_block_ci(threshold=RegressionSeverity.MINOR) is False
         # Strict path at the same threshold: the regression still counts
         # as MINOR and the check blocks.
-        assert report.should_block_ci(
-            threshold=RegressionSeverity.MINOR,
-            ignore_noise_band=False,
-        ) is True
+        assert (
+            report.should_block_ci(
+                threshold=RegressionSeverity.MINOR,
+                ignore_noise_band=False,
+            )
+            is True
+        )
 
     def test_noise_band_aware_false_disables_flagging(self):
         """Setting noise_band_aware=False on the detector disables the
@@ -499,9 +519,7 @@ class TestZFallbackNonSignificantPolicy:
 
     def test_consistent_but_nonsignificant_drop_is_not_reported(self) -> None:
         baseline = TaskBaseline(task_id="t1")
-        baseline.add_metric(
-            metric_name="mean_score", value=1.2, std=0.3, sample_size=100
-        )
+        baseline.add_metric(metric_name="mean_score", value=1.2, std=0.3, sample_size=100)
         detector = RegressionDetector()
 
         report = detector.compare(baseline, [{"mean_score": 1.0}] * 5)
@@ -526,9 +544,7 @@ class TestNoiseAwareSeverityConsistency:
 
     def test_noise_only_report_downgrades_overall_severity(self) -> None:
         baseline = TaskBaseline(task_id="t1")
-        baseline.add_metric(
-            metric_name="pass_rate", value=0.10, std=0.001, sample_size=20
-        )
+        baseline.add_metric(metric_name="pass_rate", value=0.10, std=0.001, sample_size=20)
         baseline_spec, current_spec = self._specs()
         detector = RegressionDetector()
 

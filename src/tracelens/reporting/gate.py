@@ -92,12 +92,12 @@ def per_trial_results(trials: Sequence[Trial]) -> list[dict[str, float]]:
     for trial in trials:
         if not trial.is_gradable:
             continue
-        results.append({
-            "pass_rate": 1.0 if trial.passed else 0.0,
-            "mean_score": (
-                trial.aggregate_score if trial.aggregate_score is not None else 0.0
-            ),
-        })
+        results.append(
+            {
+                "pass_rate": 1.0 if trial.passed else 0.0,
+                "mean_score": (trial.aggregate_score if trial.aggregate_score is not None else 0.0),
+            }
+        )
     return results
 
 
@@ -196,12 +196,8 @@ class TaskGateResult:
             overall_severity=RegressionSeverity(data.get("overall_severity", "none")),
             infra_config_mismatch=bool(data.get("infra_config_mismatch", False)),
             infra_config_diff=_diff_from_json(data.get("infra_config_diff", {})),
-            regressions=[
-                MetricRegression.model_validate(r) for r in data.get("regressions", [])
-            ],
-            improvements=[
-                MetricRegression.model_validate(r) for r in data.get("improvements", [])
-            ],
+            regressions=[MetricRegression.model_validate(r) for r in data.get("regressions", [])],
+            improvements=[MetricRegression.model_validate(r) for r in data.get("improvements", [])],
         )
 
 
@@ -245,13 +241,9 @@ class GateResult:
         if self.skipped_no_gradable:
             parts.append(f"{self.skipped_no_gradable} skipped (no gradable trials)")
         if self.skipped_no_comparable_metrics:
-            parts.append(
-                f"{self.skipped_no_comparable_metrics} skipped (no comparable metrics)"
-            )
+            parts.append(f"{self.skipped_no_comparable_metrics} skipped (no comparable metrics)")
         if self.skipped_task_content_changed:
-            parts.append(
-                f"{self.skipped_task_content_changed} skipped (task content changed)"
-            )
+            parts.append(f"{self.skipped_task_content_changed} skipped (task content changed)")
         parts.append(f"{self.blocking_regressions} blocking regression(s)")
         if self.status is GateStatus.UNEVALUABLE:
             parts.append("UNEVALUABLE")
@@ -348,50 +340,58 @@ def evaluate_gate(
         current_results = per_trial_results(task_trials)
         excluded = len(task_trials) - len(current_results)
         if baseline is None:
-            tasks.append(TaskGateResult(
-                task_id=task_id,
-                outcome=TaskGateOutcome.NO_BASELINE,
-                reason="no baseline stored for this task",
-                compared_trials=0,
-                excluded_trials=excluded,
-            ))
+            tasks.append(
+                TaskGateResult(
+                    task_id=task_id,
+                    outcome=TaskGateOutcome.NO_BASELINE,
+                    reason="no baseline stored for this task",
+                    compared_trials=0,
+                    excluded_trials=excluded,
+                )
+            )
             continue
         current_hash = task_hashes.get(task_id)
         if baseline.task_hash and current_hash and baseline.task_hash != current_hash:
-            tasks.append(TaskGateResult(
-                task_id=task_id,
-                outcome=TaskGateOutcome.TASK_CONTENT_CHANGED,
-                reason=(
-                    "task content changed since the baseline was stored "
-                    f"({short_hash(baseline.task_hash)} -> {short_hash(current_hash)}); "
-                    "re-store the baseline for this task"
-                ),
-                excluded_trials=excluded,
-            ))
+            tasks.append(
+                TaskGateResult(
+                    task_id=task_id,
+                    outcome=TaskGateOutcome.TASK_CONTENT_CHANGED,
+                    reason=(
+                        "task content changed since the baseline was stored "
+                        f"({short_hash(baseline.task_hash)} -> {short_hash(current_hash)}); "
+                        "re-store the baseline for this task"
+                    ),
+                    excluded_trials=excluded,
+                )
+            )
             continue
         if current_hash and not baseline.task_hash:
             unhashed_baselines.append(task_id)
         if not current_results:
-            tasks.append(TaskGateResult(
-                task_id=task_id,
-                outcome=TaskGateOutcome.NO_GRADABLE_TRIALS,
-                reason="no gradable trials (all infra/grader failures)",
-                excluded_trials=excluded,
-            ))
+            tasks.append(
+                TaskGateResult(
+                    task_id=task_id,
+                    outcome=TaskGateOutcome.NO_GRADABLE_TRIALS,
+                    reason="no gradable trials (all infra/grader failures)",
+                    excluded_trials=excluded,
+                )
+            )
             continue
         current_metrics = sorted({name for result in current_results for name in result})
         if not baseline.metrics.keys() & set(current_metrics):
-            tasks.append(TaskGateResult(
-                task_id=task_id,
-                outcome=TaskGateOutcome.NO_COMPARABLE_METRICS,
-                reason=(
-                    "baseline shares no metric with the CLI metrics "
-                    f"({', '.join(current_metrics)})"
-                ),
-                compared_trials=len(current_results),
-                excluded_trials=excluded,
-                available_metrics=current_metrics,
-            ))
+            tasks.append(
+                TaskGateResult(
+                    task_id=task_id,
+                    outcome=TaskGateOutcome.NO_COMPARABLE_METRICS,
+                    reason=(
+                        "baseline shares no metric with the CLI metrics "
+                        f"({', '.join(current_metrics)})"
+                    ),
+                    compared_trials=len(current_results),
+                    excluded_trials=excluded,
+                    available_metrics=current_metrics,
+                )
+            )
             continue
         current_spec = decision_spec
         if current_spec is None:
@@ -404,33 +404,43 @@ def evaluate_gate(
             baseline_spec=baseline.decision_spec,
             current_spec=current_spec,
         )
-        tasks.append(TaskGateResult(
-            task_id=task_id,
-            outcome=TaskGateOutcome.CHECKED,
-            compared_trials=len(current_results),
-            excluded_trials=excluded,
-            available_metrics=current_metrics,
-            blocking=report.should_block_ci(threshold),
-            has_regression=report.has_regression,
-            overall_severity=report.overall_severity,
-            infra_config_mismatch=report.infra_config_mismatch,
-            infra_config_diff=dict(report.infra_config_diff),
-            regressions=list(report.regressions),
-            improvements=list(report.improvements),
-        ))
+        tasks.append(
+            TaskGateResult(
+                task_id=task_id,
+                outcome=TaskGateOutcome.CHECKED,
+                compared_trials=len(current_results),
+                excluded_trials=excluded,
+                available_metrics=current_metrics,
+                blocking=report.should_block_ci(threshold),
+                has_regression=report.has_regression,
+                overall_severity=report.overall_severity,
+                infra_config_mismatch=report.infra_config_mismatch,
+                infra_config_diff=dict(report.infra_config_diff),
+                regressions=list(report.regressions),
+                improvements=list(report.improvements),
+            )
+        )
 
     checked = [t for t in tasks if t.outcome is TaskGateOutcome.CHECKED]
     no_baseline = [t for t in tasks if t.outcome is TaskGateOutcome.NO_BASELINE]
     no_gradable = [t for t in tasks if t.outcome is TaskGateOutcome.NO_GRADABLE_TRIALS]
     no_comparable = [t for t in tasks if t.outcome is TaskGateOutcome.NO_COMPARABLE_METRICS]
-    content_changed = [
-        t for t in tasks if t.outcome is TaskGateOutcome.TASK_CONTENT_CHANGED
-    ]
+    content_changed = [t for t in tasks if t.outcome is TaskGateOutcome.TASK_CONTENT_CHANGED]
     blocking = [t for t in checked if t.blocking]
+
+    small_sample_tasks = [t for t in checked if t.compared_trials < 3]
+    if small_sample_tasks:
+        max_n = max(t.compared_trials for t in small_sample_tasks)
+        warnings.append(
+            f"sample size (n={max_n}) is too small to reliably detect drops at threshold "
+            f"'{threshold.value}'; raise num_runs (e.g. 5) for statistical significance"
+        )
+
     if unhashed_baselines:
         warnings.append(
             f"{len(unhashed_baselines)} baseline(s) carry no task_hash, so a change to "
-            "their task content cannot be detected: " + ", ".join(unhashed_baselines)
+            "their task content cannot be detected: "
+            + ", ".join(unhashed_baselines)
             + "; re-store them from a results file that records provenance"
         )
 
@@ -467,14 +477,11 @@ def evaluate_gate(
             reasons.append(
                 f"{len(blocking)} blocking regression(s) at threshold "
                 f"'{threshold.value}': "
-                + ", ".join(
-                    f"{t.task_id} ({t.overall_severity.value})" for t in blocking
-                )
+                + ", ".join(f"{t.task_id} ({t.overall_severity.value})" for t in blocking)
             )
         if status is GateStatus.PASSED:
             reasons.append(
-                f"{len(checked)} task(s) compared; no regression at or above "
-                f"'{threshold.value}'"
+                f"{len(checked)} task(s) compared; no regression at or above '{threshold.value}'"
             )
 
     return GateResult(

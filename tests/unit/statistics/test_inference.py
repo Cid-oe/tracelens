@@ -125,9 +125,7 @@ class TestBootstrapDifferenceCI:
         baseline = np.random.normal(0.7, 0.05, 50)
         current = np.random.normal(0.85, 0.05, 50)
 
-        delta, lower, upper = bootstrap_difference_ci(
-            baseline, current, seed=42
-        )
+        delta, lower, upper = bootstrap_difference_ci(baseline, current, seed=42)
 
         assert delta > 0  # Current is higher
         assert lower > 0  # CI doesn't include 0 (significant)
@@ -137,9 +135,7 @@ class TestBootstrapDifferenceCI:
         np.random.seed(42)
         values = np.random.normal(0.8, 0.05, 50)
 
-        delta, lower, upper = bootstrap_difference_ci(
-            values, values, seed=42
-        )
+        delta, lower, upper = bootstrap_difference_ci(values, values, seed=42)
 
         # CI should include 0
         assert lower <= 0 <= upper
@@ -257,9 +253,7 @@ class TestCompareMetrics:
         baseline = np.random.normal(0.7, 0.05, 30)
         current = np.random.normal(0.85, 0.05, 30)
 
-        result = compare_metrics(
-            baseline, current, compute_p_value=True, seed=42
-        )
+        result = compare_metrics(baseline, current, compute_p_value=True, seed=42)
 
         assert result.p_value is not None
         assert result.p_value < 0.05

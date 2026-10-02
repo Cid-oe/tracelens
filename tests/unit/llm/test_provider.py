@@ -67,9 +67,7 @@ class TestLLMGraderWithProvider:
 
     @pytest.mark.asyncio
     async def test_llm_grader_uses_provider(self) -> None:
-        provider = InMemoryProvider(
-            responses=['{"score": 8, "feedback": "Good"}']
-        )
+        provider = InMemoryProvider(responses=['{"score": 8, "feedback": "Good"}'])
 
         class TestGrader(LLMGrader):
             def build_grading_prompt(self, transcript, task):
