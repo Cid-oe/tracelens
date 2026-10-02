@@ -200,6 +200,7 @@ class TestDecisionSpec:
 
     def test_fingerprint_deterministic(self):
         """Test that fingerprint is deterministic for same inputs."""
+
         def create_spec():
             return DecisionSpec(
                 model=ModelConfig(
@@ -463,12 +464,16 @@ class TestInfraConfig:
         """Two runs with the same resource config but different hosts
         should produce the same hash dict (i.e., same fingerprint)."""
         a = InfraConfig(
-            cpu_hard_limit=3.0, memory_hard_limit_mb=2048,
-            hostname="host-a", container_id="pod-111",
+            cpu_hard_limit=3.0,
+            memory_hard_limit_mb=2048,
+            hostname="host-a",
+            container_id="pod-111",
         )
         b = InfraConfig(
-            cpu_hard_limit=3.0, memory_hard_limit_mb=2048,
-            hostname="host-b", container_id="pod-222",
+            cpu_hard_limit=3.0,
+            memory_hard_limit_mb=2048,
+            hostname="host-b",
+            container_id="pod-222",
         )
         assert a.to_hash_dict() == b.to_hash_dict()
 

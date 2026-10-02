@@ -376,10 +376,13 @@ class TestNoiseAwareRegression:
         assert report.should_block_ci(threshold=RegressionSeverity.MINOR) is False
         # Strict path at the same threshold: the regression still counts
         # as MINOR and the check blocks.
-        assert report.should_block_ci(
-            threshold=RegressionSeverity.MINOR,
-            ignore_noise_band=False,
-        ) is True
+        assert (
+            report.should_block_ci(
+                threshold=RegressionSeverity.MINOR,
+                ignore_noise_band=False,
+            )
+            is True
+        )
 
     def test_noise_band_aware_false_disables_flagging(self):
         """Setting noise_band_aware=False on the detector disables the
@@ -499,9 +502,7 @@ class TestZFallbackNonSignificantPolicy:
 
     def test_consistent_but_nonsignificant_drop_is_not_reported(self) -> None:
         baseline = TaskBaseline(task_id="t1")
-        baseline.add_metric(
-            metric_name="mean_score", value=1.2, std=0.3, sample_size=100
-        )
+        baseline.add_metric(metric_name="mean_score", value=1.2, std=0.3, sample_size=100)
         detector = RegressionDetector()
 
         report = detector.compare(baseline, [{"mean_score": 1.0}] * 5)
@@ -526,9 +527,7 @@ class TestNoiseAwareSeverityConsistency:
 
     def test_noise_only_report_downgrades_overall_severity(self) -> None:
         baseline = TaskBaseline(task_id="t1")
-        baseline.add_metric(
-            metric_name="pass_rate", value=0.10, std=0.001, sample_size=20
-        )
+        baseline.add_metric(metric_name="pass_rate", value=0.10, std=0.001, sample_size=20)
         baseline_spec, current_spec = self._specs()
         detector = RegressionDetector()
 

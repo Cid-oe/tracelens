@@ -47,7 +47,7 @@ class QualityGrader(LLMGrader):
 
 ## Task
 Name: {task.name}
-Description: {task.description or 'N/A'}
+Description: {task.description or "N/A"}
 Input: {json.dumps(task.input_data)}
 
 ## Agent Output
