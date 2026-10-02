@@ -183,8 +183,7 @@ class ReportData:
         if not isinstance(data, dict):
             raise ValueError("expected a JSON object")
         missing = [
-            key for key in ("total_trials", "total_tasks", "task_summaries")
-            if key not in data
+            key for key in ("total_trials", "total_tasks", "task_summaries") if key not in data
         ]
         if missing:
             raise ValueError("missing required keys: " + ", ".join(missing))
@@ -251,9 +250,7 @@ class ReportGenerator:
         consistency_k_values: list[int] | None = None,
     ) -> None:
         self._pass_at_k = PassAtKAnalyzer(k_values=k_values or [1, 3, 5])
-        self._consistency = ConsistencyAnalyzer(
-            k_values=consistency_k_values or [2, 3, 5]
-        )
+        self._consistency = ConsistencyAnalyzer(k_values=consistency_k_values or [2, 3, 5])
 
     def build_report(
         self,
@@ -286,11 +283,7 @@ class ReportGenerator:
             gradable = [t for t in trials if t.is_gradable]
             passes = pass_results[task_id]
 
-            scores = [
-                t.aggregate_score
-                for t in gradable
-                if t.aggregate_score is not None
-            ]
+            scores = [t.aggregate_score for t in gradable if t.aggregate_score is not None]
 
             pass_rate = sum(passes) / len(passes) if passes else 0.0
             mean_score = float(np.mean(scores)) if scores else 0.0
@@ -298,9 +291,7 @@ class ReportGenerator:
 
             task_pass_at_k = {
                 name: mv.value
-                for name, mv in self._pass_at_k.analyze_detailed(
-                    {task_id: passes}
-                ).items()
+                for name, mv in self._pass_at_k.analyze_detailed({task_id: passes}).items()
             }
             task_reliability = {
                 name: mv.value
@@ -309,17 +300,19 @@ class ReportGenerator:
                 ).items()
             }
 
-            task_summaries.append(TaskSummary(
-                task_id=task_id,
-                num_trials=len(trials),
-                pass_rate=pass_rate,
-                mean_score=mean_score,
-                std_score=std_score,
-                pass_at_k=task_pass_at_k,
-                reliability=task_reliability,
-                gradable_trials=len(gradable),
-                task_hash=task_hashes.get(task_id),
-            ))
+            task_summaries.append(
+                TaskSummary(
+                    task_id=task_id,
+                    num_trials=len(trials),
+                    pass_rate=pass_rate,
+                    mean_score=mean_score,
+                    std_score=std_score,
+                    pass_at_k=task_pass_at_k,
+                    reliability=task_reliability,
+                    gradable_trials=len(gradable),
+                    task_hash=task_hashes.get(task_id),
+                )
+            )
 
             all_scores.extend(scores)
 
@@ -525,7 +518,7 @@ class ReportGenerator:
         for s in report.task_summaries:
             pr_color = _pass_rate_color(s.pass_rate)
             task_rows += (
-                f'<tr><td>{escape(s.task_id)}</td>'
+                f"<tr><td>{escape(s.task_id)}</td>"
                 f"<td>{escape(_format_trial_count(s))}</td>"
                 f'<td style="color:{pr_color};font-weight:600">'
                 f"{escape(_format_task_pass_rate(s, report))}</td>"
@@ -542,9 +535,7 @@ class ReportGenerator:
             pass_rate_chart = _svg_bar_chart(pr_labels, pr_values, 1.0, pr_colors)
 
         # --- Score distribution histogram ---
-        all_scores = [
-            s.mean_score for s in report.task_summaries if s.mean_score > 0
-        ]
+        all_scores = [s.mean_score for s in report.task_summaries if s.mean_score > 0]
         score_histogram = ""
         if all_scores:
             score_histogram = _svg_histogram(all_scores, bins=10)
@@ -672,10 +663,7 @@ def _gate_policy_text(gate: GateResult) -> str:
     threshold = gate.threshold.value if gate.threshold else "moderate"
     band = f"{gate.noise_band}" if gate.noise_band is not None else "default"
     required = "yes" if gate.require_baselines else "no"
-    return (
-        f"block at `{threshold}` or worse; noise band {band}; "
-        f"require baselines: {required}"
-    )
+    return f"block at `{threshold}` or worse; noise band {band}; require baselines: {required}"
 
 
 def _gate_task_counts(gate: GateResult) -> str:
@@ -686,6 +674,10 @@ def _gate_task_counts(gate: GateResult) -> str:
     )
     if gate.skipped_task_content_changed:
         text += f", {gate.skipped_task_content_changed} skipped (task content changed)"
+    if getattr(gate, "skipped_canary_fingerprint_mismatch", 0):
+        text += (
+            f", {gate.skipped_canary_fingerprint_mismatch} skipped (canary fingerprint mismatch)"
+        )
     return text
 
 
@@ -720,6 +712,8 @@ def _regression_notes(task: Any, regression: Any) -> str:
         notes.append("blocking")
     if regression.insufficient_data:
         notes.append("insufficient samples; severity from thresholds")
+    if getattr(regression, "custom_threshold", None):
+        notes.append(f"custom threshold: {regression.custom_threshold}")
     if task.infra_config_mismatch:
         notes.append("infra config differs from baseline")
     return "; ".join(notes)
@@ -742,15 +736,17 @@ def _gate_rows(gate: GateResult) -> list[tuple[str, str, str, str, str, str, str
     rows = []
     for task in gate.tasks:
         for regression in task.regressions:
-            rows.append((
-                task.task_id,
-                regression.metric_name,
-                f"{regression.baseline_mean:.4f}",
-                f"{regression.current_mean:.4f}",
-                f"{regression.delta_percent:+.1f}%",
-                regression.severity.value,
-                _regression_notes(task, regression),
-            ))
+            rows.append(
+                (
+                    task.task_id,
+                    regression.metric_name,
+                    f"{regression.baseline_mean:.4f}",
+                    f"{regression.current_mean:.4f}",
+                    f"{regression.delta_percent:+.1f}%",
+                    regression.severity.value,
+                    _regression_notes(task, regression),
+                )
+            )
     return rows
 
 
@@ -778,12 +774,8 @@ def _gate_section_md(report: ReportData) -> list[str]:
         rows = _gate_rows(gate)
         if rows:
             lines.append("")
-            lines.append(
-                "| Task | Metric | Baseline | Current | Change | Severity | Notes |"
-            )
-            lines.append(
-                "|------|--------|----------|---------|--------|----------|-------|"
-            )
+            lines.append("| Task | Metric | Baseline | Current | Change | Severity | Notes |")
+            lines.append("|------|--------|----------|---------|--------|----------|-------|")
             for row in rows:
                 lines.append("| " + " | ".join(_md_cell(cell) for cell in row) + " |")
         skipped = _gate_skipped_lines(gate)
@@ -800,16 +792,13 @@ def _gate_section_html(report: ReportData) -> str:
         return ""
     color = _GATE_COLORS[gate.status]
     badge = (
-        f'<span class="badge" style="background:{color}">'
-        f"{escape(gate.status.value.upper())}</span>"
+        f'<span class="badge" style="background:{color}">{escape(gate.status.value.upper())}</span>'
     )
     body = f"<p><strong>Status</strong>: {escape(_gate_status_text(gate))}</p>"
     if gate.requested:
         body += f"<p><strong>Policy</strong>: {escape(_gate_policy_text(gate))}</p>"
         body += f"<p><strong>Tasks</strong>: {escape(_gate_task_counts(gate))}</p>"
-        body += (
-            f"<p><strong>Blocking regressions</strong>: {gate.blocking_regressions}</p>"
-        )
+        body += f"<p><strong>Blocking regressions</strong>: {gate.blocking_regressions}</p>"
         for reason in gate.reasons:
             body += f"<p><strong>Why</strong>: {escape(reason)}</p>"
         for warning in gate.warnings:

@@ -12,7 +12,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 from scipy import stats
 
-from tracelens.baselines.manager import TaskBaseline
+from tracelens.baselines.manager import MetricBaseline, TaskBaseline
 from tracelens.core._time import utc_now
 from tracelens.core.decision_spec import DecisionSpec
 
@@ -34,10 +34,18 @@ def _two_sided_z_p(delta: float, spread: float) -> float:
 class RegressionSeverity(str, Enum):
     """Severity levels for regressions."""
 
-    NONE = "none"           # No regression
-    MINOR = "minor"         # < 5% decline
-    MODERATE = "moderate"   # 5-15% decline (default blocking threshold)
-    SEVERE = "severe"       # > 15% decline
+    NONE = "none"  # No regression
+    MINOR = "minor"  # < 5% decline
+    MODERATE = "moderate"  # 5-15% decline (default blocking threshold)
+    SEVERE = "severe"  # > 15% decline
+
+
+SEVERITY_ORDER: list[RegressionSeverity] = [
+    RegressionSeverity.NONE,
+    RegressionSeverity.MINOR,
+    RegressionSeverity.MODERATE,
+    RegressionSeverity.SEVERE,
+]
 
 
 class MetricRegression(BaseModel):
@@ -67,6 +75,10 @@ class MetricRegression(BaseModel):
     # Deltas flagged this way are surfaced but do NOT block CI by default
     # (see RegressionReport.blocking_regressions).
     within_noise_band: bool = False
+
+    # Note if regression detection applied a custom MetricBaseline threshold
+    # (e.g. "relative=0.1" or "absolute=-0.2").
+    custom_threshold: str | None = None
 
 
 class RegressionReport(BaseModel):
@@ -130,12 +142,7 @@ class RegressionReport(BaseModel):
         Returns:
             True if CI should be blocked
         """
-        severity_order = [
-            RegressionSeverity.NONE,
-            RegressionSeverity.MINOR,
-            RegressionSeverity.MODERATE,
-            RegressionSeverity.SEVERE,
-        ]
+        severity_order = SEVERITY_ORDER
         # When the regressions list is populated, recompute severity from
         # it directly — filtered to blocking_regressions on the lenient
         # path, unfiltered on the strict path — so the stored
@@ -145,11 +152,10 @@ class RegressionReport(BaseModel):
         # the caller only set overall_severity), fall back to the
         # declared severity so existing callers keep working.
         if self.regressions:
-            considered = (
-                self.blocking_regressions if ignore_noise_band else self.regressions
-            )
+            considered = self.blocking_regressions if ignore_noise_band else self.regressions
             effective_severity = max(
                 (r.severity for r in considered),
+                key=SEVERITY_ORDER.index,
                 default=RegressionSeverity.NONE,
             )
         else:
@@ -170,6 +176,8 @@ class RegressionReport(BaseModel):
                     notes += " [insufficient samples for significance; severity from thresholds]"
                 if reg.within_noise_band:
                     notes += " [within infra-noise band; not blocking]"
+                if reg.custom_threshold:
+                    notes += f" [custom threshold: {reg.custom_threshold}]"
                 lines.append(
                     f"  {reg.metric_name}: {reg.baseline_mean:.4f} -> "
                     f"{reg.current_mean:.4f} ({reg.delta_percent:+.1f}%){notes}"
@@ -269,6 +277,7 @@ class RegressionDetector:
                 baseline_std=metric_baseline.std_deviation,
                 current_values=current_values,
                 higher_is_better=metric_baseline.higher_is_better,
+                metric_baseline=metric_baseline,
             )
 
             if regression:
@@ -290,7 +299,10 @@ class RegressionDetector:
 
         # Determine overall severity
         if regressions:
-            overall_severity = max(r.severity for r in regressions)
+            overall_severity = max(
+                (r.severity for r in regressions),
+                key=SEVERITY_ORDER.index,
+            )
         else:
             overall_severity = RegressionSeverity.NONE
 
@@ -311,6 +323,7 @@ class RegressionDetector:
         baseline_std: float,
         current_values: list[float],
         higher_is_better: bool,
+        metric_baseline: MetricBaseline | None = None,
     ) -> MetricRegression | None:
         """Analyze a single metric for regression."""
         if not current_values:
@@ -325,8 +338,65 @@ class RegressionDetector:
         else:
             delta_percent = 100.0 if delta != 0 else 0.0
 
-        # Skip if change is too small
-        if abs(delta_percent) < self.min_delta_percent:
+        # Custom threshold check if configured on MetricBaseline.
+        custom_threshold_desc: str | None = None
+        has_custom_threshold = False
+        if metric_baseline is not None and (
+            metric_baseline.regression_threshold_relative is not None
+            or metric_baseline.regression_threshold_absolute is not None
+        ):
+            has_custom_threshold = True
+            descs = []
+            if metric_baseline.regression_threshold_relative is not None:
+                descs.append(f"relative={metric_baseline.regression_threshold_relative}")
+            if metric_baseline.regression_threshold_absolute is not None:
+                descs.append(f"absolute={metric_baseline.regression_threshold_absolute}")
+            custom_threshold_desc = ", ".join(descs)
+
+            breached = False
+            # Check directionality matching BaselineManager.compare_to_baseline:
+            # For higher_is_better:
+            # relative drop occurs if relative_change < -regression_threshold_relative (i.e. delta_percent < -threshold*100)
+            # absolute drop occurs if delta < regression_threshold_absolute
+            # For lower_is_better:
+            # relative rise occurs if relative_change > regression_threshold_relative
+            # absolute rise occurs if delta > -regression_threshold_absolute
+            rel_change = (
+                delta / abs(baseline_value)
+                if baseline_value != 0
+                else (float("inf") if delta != 0 else 0.0)
+            )
+            if higher_is_better:
+                if (
+                    metric_baseline.regression_threshold_relative is not None
+                    and rel_change < -metric_baseline.regression_threshold_relative
+                ):
+                    breached = True
+                if (
+                    metric_baseline.regression_threshold_absolute is not None
+                    and delta < metric_baseline.regression_threshold_absolute
+                ):
+                    breached = True
+            else:
+                if (
+                    metric_baseline.regression_threshold_relative is not None
+                    and rel_change > metric_baseline.regression_threshold_relative
+                ):
+                    breached = True
+                if (
+                    metric_baseline.regression_threshold_absolute is not None
+                    and delta > -metric_baseline.regression_threshold_absolute
+                ):
+                    breached = True
+
+            # If a decline is observed but doesn't breach the custom threshold,
+            # it is not flagged as a regression.
+            is_decline = (delta < 0) if higher_is_better else (delta > 0)
+            if is_decline and not breached:
+                return None
+
+        # Skip if change is too small (when not overridden by custom threshold)
+        if not has_custom_threshold and abs(delta_percent) < self.min_delta_percent:
             return None
 
         # Statistical test. p_value stays None when no valid test exists —
@@ -340,9 +410,7 @@ class RegressionDetector:
             # avoid scipy's precision-loss RuntimeWarning.
             current_std = float(np.std(current_values, ddof=1))
             if np.isclose(current_std, 0.0, atol=1e-12):
-                p_value = _two_sided_z_p(
-                    delta, baseline_std / float(np.sqrt(len(current_values)))
-                )
+                p_value = _two_sided_z_p(delta, baseline_std / float(np.sqrt(len(current_values))))
             else:
                 _t_stat, p_value_result = stats.ttest_1samp(current_values, baseline_value)
                 p_value = float(p_value_result)
@@ -383,6 +451,7 @@ class RegressionDetector:
             is_significant=is_significant,
             insufficient_data=insufficient_data,
             severity=severity,
+            custom_threshold=custom_threshold_desc,
         )
 
     def _generate_summary(
@@ -397,13 +466,14 @@ class RegressionDetector:
             lines.append(f"REGRESSIONS DETECTED ({len(regressions)} metrics):")
             for r in regressions:
                 p_str = (
-                    f"p={r.p_value:.4f}"
-                    if r.p_value is not None
-                    else "p=n/a, insufficient samples"
+                    f"p={r.p_value:.4f}" if r.p_value is not None else "p=n/a, insufficient samples"
+                )
+                custom_str = (
+                    f" [custom threshold: {r.custom_threshold}]" if r.custom_threshold else ""
                 )
                 lines.append(
                     f"  - {r.metric_name}: {r.baseline_mean:.4f} -> {r.current_mean:.4f} "
-                    f"({r.delta_percent:+.1f}%, {p_str}) [{r.severity.value}]"
+                    f"({r.delta_percent:+.1f}%, {p_str}) [{r.severity.value}]{custom_str}"
                 )
         else:
             lines.append("No significant regressions detected.")
@@ -521,6 +591,7 @@ class RegressionDetector:
             # blocking.
             report.overall_severity = max(
                 (r.severity for r in report.blocking_regressions),
+                key=SEVERITY_ORDER.index,
                 default=RegressionSeverity.NONE,
             )
             noise_flagged = sum(1 for r in report.regressions if r.within_noise_band)

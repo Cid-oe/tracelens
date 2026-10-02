@@ -13,9 +13,7 @@ from tracelens.core.trial import Trial, TrialBatch, TrialStatus
 
 def _trial(task_id: str, passed: bool, score: float) -> Trial:
     trial = Trial(task_id=task_id, status=TrialStatus.COMPLETED)
-    trial.add_outcome(
-        Outcome(trial_id="x", grader_id="g", passed=passed, score=score)
-    )
+    trial.add_outcome(Outcome(trial_id="x", grader_id="g", passed=passed, score=score))
     return trial
 
 
@@ -46,9 +44,7 @@ def test_detector_sees_distribution_and_flags_regression() -> None:
     baseline.add_metric(metric_name="pass_rate", value=1.0, std=0.05, sample_size=20)
     baseline.add_metric(metric_name="mean_score", value=0.9, std=0.05, sample_size=20)
 
-    batch = _batch(
-        *[_trial("t1", passed=False, score=0.1) for _ in range(5)]
-    )
+    batch = _batch(*[_trial("t1", passed=False, score=0.1) for _ in range(5)])
 
     from tracelens.baselines.comparison import RegressionDetector
 
@@ -58,9 +54,7 @@ def test_detector_sees_distribution_and_flags_regression() -> None:
 
     assert report.has_regression
     # 5 identical samples → the multi-sample branch ran, not single-sample z
-    pass_rate_reg = next(
-        r for r in report.regressions if r.metric_name == "pass_rate"
-    )
+    pass_rate_reg = next(r for r in report.regressions if r.metric_name == "pass_rate")
     assert pass_rate_reg.current_mean == 0.0
     assert pass_rate_reg.is_significant
 
@@ -76,9 +70,7 @@ def _grader_error_trial(task_id: str) -> Trial:
     trial = Trial(task_id=task_id)
     trial.status = TrialStatus.COMPLETED
     trial.add_outcome(
-        Outcome(
-            trial_id="x", grader_id="g", passed=False, score=0.0, grader_error=True
-        )
+        Outcome(trial_id="x", grader_id="g", passed=False, score=0.0, grader_error=True)
     )
     return trial
 
@@ -122,9 +114,7 @@ def test_spec_from_trials_prefers_most_recent_and_warns_on_mixed(
     def _trial_with_spec(memory_mb: int) -> Trial:
         trial = Trial(task_id="t1")
         transcript = Transcript(task_id="t1", final_output={})
-        transcript.decision_spec = DecisionSpec(
-            infra=InfraConfig(memory_hard_limit_mb=memory_mb)
-        )
+        transcript.decision_spec = DecisionSpec(infra=InfraConfig(memory_hard_limit_mb=memory_mb))
         trial.transcript = transcript
         return trial
 

@@ -17,25 +17,31 @@ def _make_streaming_transcript(
     """Build a transcript with streaming events at given timestamps."""
     t = Transcript(task_id="t1")
 
-    t.add_streaming_event(StreamingEvent(
-        event_type=StreamingEventType.STREAM_START,
-        timestamp_ms=0.0,
-    ))
+    t.add_streaming_event(
+        StreamingEvent(
+            event_type=StreamingEventType.STREAM_START,
+            timestamp_ms=0.0,
+        )
+    )
 
     for i, ts in enumerate(token_timestamps):
         count = token_counts[i] if token_counts else 1
-        t.add_streaming_event(StreamingEvent(
-            event_type=StreamingEventType.TOKEN,
-            timestamp_ms=ts,
-            content=f"tok{i}",
-            token_count=count,
-        ))
+        t.add_streaming_event(
+            StreamingEvent(
+                event_type=StreamingEventType.TOKEN,
+                timestamp_ms=ts,
+                content=f"tok{i}",
+                token_count=count,
+            )
+        )
 
     end_ts = token_timestamps[-1] + 10.0 if token_timestamps else 10.0
-    t.add_streaming_event(StreamingEvent(
-        event_type=StreamingEventType.STREAM_END,
-        timestamp_ms=end_ts,
-    ))
+    t.add_streaming_event(
+        StreamingEvent(
+            event_type=StreamingEventType.STREAM_END,
+            timestamp_ms=end_ts,
+        )
+    )
 
     return t
 

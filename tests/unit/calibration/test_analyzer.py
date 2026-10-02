@@ -30,9 +30,11 @@ class TestAnnotationSet:
         assert annotations.annotations[0].task_id == "t1"
 
     def test_get_by_task_id(self):
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.8, human_passed=True),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.8, human_passed=True),
+            ]
+        )
         assert annotations.get_by_task_id("t1") is not None
         assert annotations.get_by_task_id("missing") is None
 
@@ -46,12 +48,14 @@ class TestCalibrationAnalyzer:
             "t3": _make_outcome(0.3, False),
             "t4": _make_outcome(0.1, False),
         }
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
-            HumanAnnotation(task_id="t2", human_score=0.7, human_passed=True),
-            HumanAnnotation(task_id="t3", human_score=0.3, human_passed=False),
-            HumanAnnotation(task_id="t4", human_score=0.1, human_passed=False),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
+                HumanAnnotation(task_id="t2", human_score=0.7, human_passed=True),
+                HumanAnnotation(task_id="t3", human_score=0.3, human_passed=False),
+                HumanAnnotation(task_id="t4", human_score=0.1, human_passed=False),
+            ]
+        )
 
         analyzer = CalibrationAnalyzer(threshold=0.7)
         result = analyzer.analyze(outcomes, annotations)
@@ -70,12 +74,14 @@ class TestCalibrationAnalyzer:
             "t3": _make_outcome(0.7, True),
             "t4": _make_outcome(0.9, True),
         }
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
-            HumanAnnotation(task_id="t2", human_score=0.7, human_passed=True),
-            HumanAnnotation(task_id="t3", human_score=0.3, human_passed=False),
-            HumanAnnotation(task_id="t4", human_score=0.1, human_passed=False),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
+                HumanAnnotation(task_id="t2", human_score=0.7, human_passed=True),
+                HumanAnnotation(task_id="t3", human_score=0.3, human_passed=False),
+                HumanAnnotation(task_id="t4", human_score=0.1, human_passed=False),
+            ]
+        )
 
         analyzer = CalibrationAnalyzer(threshold=0.7)
         result = analyzer.analyze(outcomes, annotations)
@@ -91,11 +97,13 @@ class TestCalibrationAnalyzer:
             "t2": _make_outcome(0.8, True),
             "t3": _make_outcome(0.6, True),
         }
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.7, human_passed=True),
-            HumanAnnotation(task_id="t2", human_score=0.6, human_passed=True),
-            HumanAnnotation(task_id="t3", human_score=0.4, human_passed=False),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.7, human_passed=True),
+                HumanAnnotation(task_id="t2", human_score=0.6, human_passed=True),
+                HumanAnnotation(task_id="t3", human_score=0.4, human_passed=False),
+            ]
+        )
 
         analyzer = CalibrationAnalyzer(threshold=0.7)
         result = analyzer.analyze(outcomes, annotations)
@@ -112,12 +120,14 @@ class TestCalibrationAnalyzer:
             "t3": _make_outcome(0.35, False),
             "t4": _make_outcome(0.15, False),
         }
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
-            HumanAnnotation(task_id="t2", human_score=0.7, human_passed=True),
-            HumanAnnotation(task_id="t3", human_score=0.3, human_passed=False),
-            HumanAnnotation(task_id="t4", human_score=0.1, human_passed=False),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
+                HumanAnnotation(task_id="t2", human_score=0.7, human_passed=True),
+                HumanAnnotation(task_id="t3", human_score=0.3, human_passed=False),
+                HumanAnnotation(task_id="t4", human_score=0.1, human_passed=False),
+            ]
+        )
 
         # Very high threshold
         strict = CalibrationAnalyzer(threshold=0.999)
@@ -135,9 +145,11 @@ class TestCalibrationAnalyzer:
     def test_too_few_samples(self):
         """With < 2 samples, result is not calibrated."""
         outcomes = {"t1": _make_outcome(0.9, True)}
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
+            ]
+        )
 
         analyzer = CalibrationAnalyzer()
         result = analyzer.analyze(outcomes, annotations)
@@ -149,16 +161,20 @@ class TestCalibrationAnalyzer:
         """Cohen's kappa with some disagreement."""
         outcomes = {
             "t1": _make_outcome(0.8, True),
-            "t2": _make_outcome(0.6, True),   # Grader says pass
+            "t2": _make_outcome(0.6, True),  # Grader says pass
             "t3": _make_outcome(0.3, False),
             "t4": _make_outcome(0.1, False),
         }
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.8, human_passed=True),
-            HumanAnnotation(task_id="t2", human_score=0.4, human_passed=False),  # Human says fail
-            HumanAnnotation(task_id="t3", human_score=0.3, human_passed=False),
-            HumanAnnotation(task_id="t4", human_score=0.1, human_passed=False),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.8, human_passed=True),
+                HumanAnnotation(
+                    task_id="t2", human_score=0.4, human_passed=False
+                ),  # Human says fail
+                HumanAnnotation(task_id="t3", human_score=0.3, human_passed=False),
+                HumanAnnotation(task_id="t4", human_score=0.1, human_passed=False),
+            ]
+        )
 
         analyzer = CalibrationAnalyzer()
         result = analyzer.analyze(outcomes, annotations)
@@ -172,10 +188,12 @@ class TestCalibrationAnalyzer:
             "t1": _make_outcome(0.9, True),
             "t2": _make_outcome(0.3, False),
         }
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
-            HumanAnnotation(task_id="t2", human_score=0.3, human_passed=False),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
+                HumanAnnotation(task_id="t2", human_score=0.3, human_passed=False),
+            ]
+        )
 
         analyzer = CalibrationAnalyzer()
         result = analyzer.analyze(outcomes, annotations)
@@ -190,10 +208,12 @@ class TestCalibrationAnalyzer:
             "t1": _make_outcome(0.9, True),
             "t2": _make_outcome(0.3, False),
         }
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
-            HumanAnnotation(task_id="t2", human_score=0.3, human_passed=False),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
+                HumanAnnotation(task_id="t2", human_score=0.3, human_passed=False),
+            ]
+        )
 
         analyzer = CalibrationAnalyzer()
         result = analyzer.analyze(outcomes, annotations)
@@ -205,10 +225,12 @@ class TestCalibrationAnalyzer:
     def test_missing_outcome_skipped(self):
         """Annotations without matching outcomes are skipped."""
         outcomes = {"t1": _make_outcome(0.9, True)}
-        annotations = AnnotationSet(annotations=[
-            HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
-            HumanAnnotation(task_id="t_missing", human_score=0.5, human_passed=True),
-        ])
+        annotations = AnnotationSet(
+            annotations=[
+                HumanAnnotation(task_id="t1", human_score=0.9, human_passed=True),
+                HumanAnnotation(task_id="t_missing", human_score=0.5, human_passed=True),
+            ]
+        )
 
         analyzer = CalibrationAnalyzer()
         result = analyzer.analyze(outcomes, annotations)

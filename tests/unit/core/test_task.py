@@ -104,10 +104,14 @@ class TestJSONTaskLoader:
     def test_load_single_task(self, tmp_path: Path):
         """Test loading a single task from JSON."""
         task_file = tmp_path / "task.json"
-        task_file.write_text(json.dumps({
-            "name": "Test Task",
-            "input_data": {"goal": "Test"},
-        }))
+        task_file.write_text(
+            json.dumps(
+                {
+                    "name": "Test Task",
+                    "input_data": {"goal": "Test"},
+                }
+            )
+        )
 
         loader = JSONTaskLoader()
         tasks = loader.load(task_file)
@@ -118,12 +122,16 @@ class TestJSONTaskLoader:
     def test_load_tasks_array(self, tmp_path: Path):
         """Test loading tasks from array format."""
         task_file = tmp_path / "tasks.json"
-        task_file.write_text(json.dumps({
-            "tasks": [
-                {"name": "Task 1", "input_data": {"goal": "Goal 1"}},
-                {"name": "Task 2", "input_data": {"goal": "Goal 2"}},
-            ]
-        }))
+        task_file.write_text(
+            json.dumps(
+                {
+                    "tasks": [
+                        {"name": "Task 1", "input_data": {"goal": "Goal 1"}},
+                        {"name": "Task 2", "input_data": {"goal": "Goal 2"}},
+                    ]
+                }
+            )
+        )
 
         loader = JSONTaskLoader()
         tasks = loader.load(task_file)
@@ -134,12 +142,12 @@ class TestJSONTaskLoader:
 
     def test_load_from_directory(self, tmp_path: Path):
         """Test loading tasks from directory."""
-        (tmp_path / "task1.json").write_text(json.dumps({
-            "name": "Task 1", "input_data": {"goal": "Goal 1"}
-        }))
-        (tmp_path / "task2.json").write_text(json.dumps({
-            "name": "Task 2", "input_data": {"goal": "Goal 2"}
-        }))
+        (tmp_path / "task1.json").write_text(
+            json.dumps({"name": "Task 1", "input_data": {"goal": "Goal 1"}})
+        )
+        (tmp_path / "task2.json").write_text(
+            json.dumps({"name": "Task 2", "input_data": {"goal": "Goal 2"}})
+        )
 
         loader = JSONTaskLoader()
         tasks = loader.load(tmp_path)
