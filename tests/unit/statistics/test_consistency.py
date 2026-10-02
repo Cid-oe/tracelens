@@ -162,8 +162,8 @@ class TestPassToKOrderAndGaps:
 
     def test_estimator_drops_tasks_without_a_complete_window(self):
         results = {
-            "gappy": [True, None, True],          # no complete window of 2
-            "ok": [True, True, False],            # TT, TF -> 0.5
+            "gappy": [True, None, True],  # no complete window of 2
+            "ok": [True, True, False],  # TT, TF -> 0.5
         }
         assert pass_to_k_estimator(results, k=2) == 0.5
 
@@ -182,9 +182,7 @@ class TestPassToKOrderAndGaps:
 
     def test_stability_metrics_handle_gaps(self):
         analyzer = ConsistencyAnalyzer(k_values=[2])
-        metrics = analyzer.compute_stability_metrics(
-            {"a": [True, None, True, True, False]}
-        )
+        metrics = analyzer.compute_stability_metrics({"a": [True, None, True, True, False]})
         # Observed runs T, T, T, F -> failure rate 1/4; the gap breaks the streak -> 2.
         assert metrics["failure_rate"] == pytest.approx(0.25)
         assert metrics["avg_longest_streak"] == 2.0
