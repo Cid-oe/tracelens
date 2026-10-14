@@ -264,6 +264,168 @@ Use the sample report at
 as the shape to aim for when posting CI summaries: include the metric, baseline
 value, current value, delta, regression result, and blocking decision.
 
+## Strict metric coverage for frozen replays
+
+`BaselineManager.compare_to_baseline(task_id, metrics, coverage="strict")`
+reports the union of metric names. Matched rows retain the usual comparison
+fields and add `coverage: "matched"`. A missing row contains `baseline`,
+`current`, `regression: None`, and one of:
+
+- `coverage: "missing_from_current"`: the baseline expected a measurement
+  that this run did not produce; `current` is `None`.
+- `coverage: "missing_from_baseline"`: this run produced an unknown metric;
+  `baseline` is `None`.
+
+A missing row has no numerical verdict. A caller must check `coverage` before
+reading `regression`; `None` is not a pass. A new metric with value zero is
+still unknown, and a missing metric is never filled with zero. Producers of
+sparse counters should explicitly emit zero for known reasons that did not
+occur, and omit a metric only when they did not measure it.
+
+The default `coverage="intersection"` preserves the previous result dictionary
+and skips unmatched metrics. Strict coverage is opt-in, including for CANARY
+baselines: a safety floor and a frozen deterministic replay have different
+measurement expectations. An absent task baseline still returns
+`{"_no_baseline": True}` and must never clear a caller's gate. Empty comparison
+sets carry no passing evidence.
+
+To accept a reviewed change to the metric set, update the stored baseline.
+`force_promote` and `update_baseline` add a new metric with the run's value, but
+neither ever deletes one. A metric that legitimately no longer exists, such as a
+failure reason that was fixed, keeps reporting `missing_from_current` until you
+remove it: `del baseline.metrics[name]`, then `manager.save()`. Deleting does not
+archive the old value in the baseline's history, so record the reason in the
+change that edits the baseline file.
+
+`compare_to_baseline_with_ci(..., coverage="strict")` applies the same coverage
+rule. An empty sample list counts as missing from current; missing rows carry
+`is_regression: None` and the raw current samples or `None`, rather than an
+invented estimate. Strict comparisons reject nonfinite measurements.
+
+The runnable [deterministic canary recipe](https://github.com/ssf0409/tracelens/blob/main/examples/deterministic_canary.py)
+executes the checked-in `examples/canary_replay.json` task through an adapter,
+transcript, and deterministic metric grader. Record the protected baseline once,
+then use fresh output directories for checks:
+
+```bash
+uv run --frozen python examples/deterministic_canary.py record \
+  --baseline /tmp/workflow-canary/baseline.json --output-dir /tmp/workflow-canary/reference
+uv run --frozen python examples/deterministic_canary.py check \
+  --baseline /tmp/workflow-canary/baseline.json --scenario unchanged \
+  --output-dir /tmp/workflow-canary/unchanged
+uv run --frozen python examples/deterministic_canary.py check \
+  --baseline /tmp/workflow-canary/baseline.json --scenario missing \
+  --output-dir /tmp/workflow-canary/missing
+```
+
+The unchanged check exits 0. `missing`, `new`, and `empty` exit 1 with explicit
+coverage findings. Invalid input exits 2 before replay. Each successful replay
+persists `trials.json` and `gate.json`, including metrics, comparisons, task hash,
+and run identity. Checking never promotes or overwrites the baseline; recording
+refuses an existing baseline. The fixture demonstrates a local workflow, not an
+external service integration. Its Python gate policy is separate from
+`tracelens run --baseline-check`, which uses `RegressionDetector` and a limited
+CLI metric set; these API options do not add CLI gate behavior.
+The comparison rows are strict JSON as returned: a value with no number, such
+as the relative change from a zero baseline, is `null` and named in the row's
+`unavailable_fields`, and the gate decides from the comparison flags, not from
+those values.
+
+## Two-sided change tolerances
+
+One-sided `regression_threshold_absolute` / `regression_threshold_relative`
+remain useful for noisy quality metrics. For a frozen deterministic workflow,
+either an increase or a decrease can be unexpected. Declare that expectation
+on each metric:
+
+```python
+from tracelens.baselines import BaselineManager
+
+manager = BaselineManager("eval/baselines/canary-baselines.json")
+baseline = manager.create_canary_baseline(
+    task_id="fixed-workflow",
+    metrics={"accepted": 2.0, "rejected.invalid": 1.0},
+    fingerprint="workflow-v1-replay-2026-10-13",
+)
+for metric in baseline.metrics.values():
+    metric.change_tolerance_absolute = 0.0
+manager.save()
+```
+
+Assign the field, as above, on new and existing metrics alike.
+`TaskBaseline.add_metric()` also accepts `change_tolerance_absolute` and
+`change_tolerance_relative`, but it replaces the whole metric: every setting it
+is not given (`std_deviation`, `sample_size`, regression thresholds,
+`higher_is_better`, `is_rate`) returns to its default.
+
+Each configured tolerance is a hard bound:
+
+- Absolute: `abs(current - baseline) > change_tolerance_absolute`.
+- Relative: `abs(current - baseline) > change_tolerance_relative * abs(baseline)`.
+- Setting both means exceeding either bound reports a change, so the smaller
+  allowance wins. This is the opposite of `math.isclose` and `pytest.approx`,
+  where the larger one wins: here an absolute bound cannot widen a relative bound
+  near zero. Equality is within tolerance. A zero baseline allows no nonzero
+  movement under a relative bound; use an absolute bound when movement away from
+  zero is acceptable.
+- Tolerances must be finite and nonnegative. Zero requires exact numerical
+  equality with no hidden float epsilon; use an explicit nonzero tolerance for
+  calculated floats that need rounding allowance. A value kept to a fixed
+  quantum, such as P&L rounded to 1e-6, can move by one quantum and still exceed
+  a tolerance equal to that quantum, because the difference is computed in floats
+  (`36.620401 - 36.6204` is `1.00000000458e-06`). To allow one quantum but not
+  two, set the tolerance between them, for example `1.5e-6`.
+
+Only metrics with a configured tolerance add `changed: True | False` to their
+matched comparison row. The existing `delta`, `relative_change`, `z_score`, and
+`regression` are preserved. Old files without these fields load with tolerances
+disabled and retain the previous comparison dictionary. `None` disables a bound.
+Against a zero baseline `relative_change` is `None` and listed in
+`unavailable_fields`; the change check bounds `abs(current - baseline)`
+directly and does not depend on it.
+
+Both comparison methods support tolerances. In `compare_to_baseline_with_ci`,
+`changed` compares the current sample **mean** with the stored value. It is
+independent of `is_significant` and `is_regression`; opposing sample changes can
+cancel in the mean. It does not check each sample, distribution stability, or
+statistical equivalence. For a deterministic replay, the point comparison of
+observed counts is sufficient. For noisy scores, retain the statistical tests
+and their evidence requirements.
+
+`update_baseline(..., keep_thresholds=True)` (the default) and both promotion
+paths preserve the tolerance settings and archive them in history.
+`keep_thresholds=False` explicitly clears regression thresholds and change
+tolerances. CANARY baselines continue to require manual promotion.
+Tolerances are carried forward only for metrics the baseline already had. A
+metric that promotion or `update_baseline` adds for the first time, such as a
+new failure reason accepted with `force_promote`, starts with tolerances
+disabled; set its tolerance as part of that review.
+Saving rejects invalid assigned tolerances before opening the baseline file,
+so serialization cannot turn a nonfinite bound into a disabled `null` setting.
+
+The recipe records zero absolute tolerances on all metrics and uses strict
+coverage. Its consumer blocks on either coverage findings, regression, or
+`changed`; it does not silently promote a favorable count change:
+
+```bash
+uv run --frozen python examples/deterministic_canary.py check \
+  --baseline /tmp/workflow-canary/baseline.json --scenario increase \
+  --output-dir /tmp/workflow-canary/increase
+uv run --frozen python examples/deterministic_canary.py check \
+  --baseline /tmp/workflow-canary/baseline.json --scenario decrease \
+  --output-dir /tmp/workflow-canary/decrease
+```
+
+Both exit 1: accepted requests move from 2 to 3 or 1, with `changed: true` even
+though `regression: false` (no one-sided threshold was configured). A metric
+without a tolerance has no `changed` verdict and could move freely, so the check
+refuses, with exit 2 before replay, a baseline in which any metric lacks one:
+a baseline recorded before tolerances existed, or a metric first added by
+promotion. Review those metrics and set their tolerances explicitly; the recipe
+never rewrites the baseline.
+The `zero-channel` scenario activates the existing `rejected.quota` counter from
+zero to one; it also exits 1 and persists a gate with unavailable relative change.
+
 ## Baseline Review Checklist
 
 Before committing a baseline change, confirm:

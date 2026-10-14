@@ -12,6 +12,7 @@ import json
 import subprocess
 from datetime import datetime
 from enum import Enum
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
@@ -104,6 +105,11 @@ class MetricBaseline(BaseModel):
     regression_threshold_absolute: float | None = None
     regression_threshold_relative: float | None = None
 
+    # A frozen replay may require stability in both directions. None keeps
+    # one-sided regression semantics; zero explicitly requires exact equality.
+    change_tolerance_absolute: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    change_tolerance_relative: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+
     # Direction indicator for proper comparison
     higher_is_better: bool = True  # False for metrics like drawdown
 
@@ -118,6 +124,38 @@ class MetricBaseline(BaseModel):
     # still compared as a continuous metric, because the exact test would
     # otherwise round it to a count nobody measured.
     is_rate: bool | None = None
+
+    def change_exceeds_tolerance(self, current_value: float) -> bool | None:
+        """Return an opt-in stability verdict, independent of significance.
+
+        Each configured limit is a bound: exceeding either means changed.
+        Relative tolerance uses the baseline magnitude, so its allowed
+        absolute movement is zero when the baseline is zero.
+        """
+        absolute = self.change_tolerance_absolute
+        relative = self.change_tolerance_relative
+        if absolute is None and relative is None:
+            return None
+        for tolerance in (absolute, relative):
+            if tolerance is not None and (not isfinite(tolerance) or tolerance < 0):
+                # Models can be mutated after validation. Never let an assigned
+                # NaN tolerance turn every exceedance comparison into False.
+                raise ValueError("Change tolerance must be finite and nonnegative")
+        if not isfinite(current_value) or not isfinite(self.baseline_value):
+            raise ValueError(f"Metric {self.metric_name!r} values must be finite")
+        magnitude = abs(current_value - self.baseline_value)
+        relative_changed = False
+        if relative is not None:
+            limit = relative * abs(self.baseline_value)
+            if not isfinite(magnitude) and not isfinite(limit):
+                # Both sides can overflow for finite, opposite-sign inputs.
+                # Scaling first avoids the misleading comparison inf > inf.
+                relative_changed = abs(current_value / self.baseline_value - 1.0) > relative
+            else:
+                relative_changed = magnitude > limit
+        # bool(): numpy inputs make the comparisons numpy.bool_, which fails
+        # `is True` checks and json.dumps.
+        return bool((absolute is not None and magnitude > absolute) or relative_changed)
 
 
 class TaskBaseline(BaseModel):
@@ -201,6 +239,8 @@ class TaskBaseline(BaseModel):
         relative_threshold: float | None = None,
         higher_is_better: bool = True,
         is_rate: bool | None = None,
+        change_tolerance_absolute: float | None = None,
+        change_tolerance_relative: float | None = None,
     ) -> None:
         """Add or update a metric baseline.
 
@@ -221,6 +261,8 @@ class TaskBaseline(BaseModel):
             regression_threshold_relative=relative_threshold,
             higher_is_better=higher_is_better,
             is_rate=is_rate,
+            change_tolerance_absolute=change_tolerance_absolute,
+            change_tolerance_relative=change_tolerance_relative,
         )
         self.updated_at = utc_now()
 
@@ -386,6 +428,8 @@ class TaskBaseline(BaseModel):
             rel_threshold = None
             higher_is_better = True
             is_rate = None
+            change_absolute = None
+            change_relative = None
 
             if old_metric:
                 abs_threshold = old_metric.regression_threshold_absolute
@@ -395,6 +439,8 @@ class TaskBaseline(BaseModel):
                 # it decides which test compares the metric, so dropping it
                 # here would silently change the test family on promotion.
                 is_rate = old_metric.is_rate
+                change_absolute = old_metric.change_tolerance_absolute
+                change_relative = old_metric.change_tolerance_relative
 
             self.add_metric(
                 metric_name=metric_name,
@@ -405,6 +451,8 @@ class TaskBaseline(BaseModel):
                 relative_threshold=rel_threshold,
                 higher_is_better=higher_is_better,
                 is_rate=is_rate,
+                change_tolerance_absolute=change_absolute,
+                change_tolerance_relative=change_relative,
             )
 
         # Update metadata
@@ -516,6 +564,11 @@ class BaselineManager:
 
         data = {}
         for task_id, baseline in self._baselines.items():
+            for metric in baseline.metrics.values():
+                # Pydantic JSON serialization maps nonfinite floats to null.
+                # An invalid assigned tolerance must never become a disabled
+                # tolerance on disk. Validate before opening the destination.
+                metric.change_exceeds_tolerance(metric.baseline_value)
             data[task_id] = json.loads(baseline.model_dump_json())
 
         with open(self.baselines_path, "w") as f:
@@ -596,6 +649,8 @@ class BaselineManager:
             abs_threshold = None
             rel_threshold = None
             higher_is_better = True
+            change_absolute = None
+            change_relative = None
             # The metric's type is part of its definition, not of the
             # thresholds, so it follows the metric across an update whether
             # or not the caller asked to keep thresholds.
@@ -605,6 +660,8 @@ class BaselineManager:
                 abs_threshold = old_metric.regression_threshold_absolute
                 rel_threshold = old_metric.regression_threshold_relative
                 higher_is_better = old_metric.higher_is_better
+                change_absolute = old_metric.change_tolerance_absolute
+                change_relative = old_metric.change_tolerance_relative
 
             existing.add_metric(
                 metric_name=metric_name,
@@ -615,6 +672,8 @@ class BaselineManager:
                 relative_threshold=rel_threshold,
                 higher_is_better=higher_is_better,
                 is_rate=is_rate,
+                change_tolerance_absolute=change_absolute,
+                change_tolerance_relative=change_relative,
             )
 
         if decision_spec is not None:
@@ -654,12 +713,17 @@ class BaselineManager:
         self,
         task_id: str,
         current_metrics: dict[str, float],
+        *,
+        coverage: str = "intersection",
     ) -> dict[str, Any]:
         """Compare current metrics to baseline.
 
         Args:
             task_id: The task identifier
             current_metrics: Dict of metric_name -> current value
+            coverage: "intersection" preserves the legacy result; "strict"
+                reports missing metrics on either side. Missing rows carry
+                ``regression=None`` and must not be treated as passing.
 
         Returns:
             Dict of metric_name -> comparison dict with:
@@ -674,13 +738,19 @@ class BaselineManager:
             - unavailable_fields: ["relative_change"], present only when
                 the baseline is 0
             - z_score: standard score if std available
+            - changed: present only with a configured two-sided tolerance;
+                True when either limit is exceeded, independently of regression
         """
+        self._validate_coverage(coverage)
         baseline = self.get_baseline(task_id)
 
         if not baseline:
             return {"_no_baseline": True}
 
-        comparisons = {}
+        comparisons: dict[str, dict[str, Any]] = {}
+
+        if coverage == "strict":
+            self._validate_finite(baseline, current_metrics)
 
         for metric_name, current_value in current_metrics.items():
             metric_baseline = baseline.get_metric(metric_name)
@@ -742,8 +812,52 @@ class BaselineManager:
                 **({"unavailable_fields": ["relative_change"]}
                    if relative_change is None else {}),
             }
+            changed = metric_baseline.change_exceeds_tolerance(current_value)
+            if changed is not None:
+                comparisons[metric_name]["changed"] = changed
+
+        if coverage == "strict":
+            for row in comparisons.values():
+                row["coverage"] = "matched"
+            comparisons.update(self._coverage_findings(baseline, current_metrics, "regression"))
 
         return comparisons
+
+    @staticmethod
+    def _validate_coverage(coverage: str) -> None:
+        if coverage not in {"intersection", "strict"}:
+            raise ValueError("coverage must be 'intersection' or 'strict'")
+
+    @staticmethod
+    def _validate_finite(baseline: TaskBaseline, current_metrics: dict[str, float]) -> None:
+        for name, value in current_metrics.items():
+            if not isfinite(value):
+                raise ValueError(f"Current metric {name!r} must be finite")
+        for name, metric in baseline.metrics.items():
+            if not isfinite(metric.baseline_value):
+                raise ValueError(f"Baseline metric {name!r} must be finite")
+
+    @staticmethod
+    def _coverage_findings(
+        baseline: TaskBaseline, current_metrics: dict[str, Any], regression_key: str,
+    ) -> dict[str, Any]:
+        """A missing measurement has no comparison verdict or invented zero."""
+        findings: dict[str, Any] = {}
+        for name in sorted(baseline.metrics.keys() - current_metrics.keys()):
+            findings[name] = {
+                "coverage": "missing_from_current",
+                "baseline": baseline.metrics[name].baseline_value,
+                "current": None,
+                regression_key: None,
+            }
+        for name in sorted(current_metrics.keys() - baseline.metrics.keys()):
+            findings[name] = {
+                "coverage": "missing_from_baseline",
+                "baseline": None,
+                "current": current_metrics[name],
+                regression_key: None,
+            }
+        return findings
 
     def create_canary_baseline(
         self,
@@ -1024,6 +1138,8 @@ class BaselineManager:
         current_values: dict[str, list[float]],
         confidence: float = 0.95,
         n_bootstrap: int = 10000,
+        *,
+        coverage: str = "intersection",
     ) -> dict[str, Any]:
         """Compare current metrics to baseline with bootstrap CI.
 
@@ -1035,6 +1151,9 @@ class BaselineManager:
             current_values: Dict of metric_name -> list of sample values
             confidence: Confidence level (default 0.95 for 95% CI)
             n_bootstrap: Number of bootstrap samples
+            coverage: "strict" reports absent metrics and empty sample lists
+                as unmeasured. Missing rows carry ``is_regression=None``;
+                their current field is the raw sample list or None.
 
         Returns:
             Dict of metric_name -> comparison result with:
@@ -1049,13 +1168,28 @@ class BaselineManager:
             - is_significant: True if CI doesn't include 0
             - is_regression: True if significant decline
             - cohens_d: Effect size
+            - changed: opt-in tolerance check on the current mean; independent
+                of is_significant and is_regression, not a per-sample check
         """
+        self._validate_coverage(coverage)
         baseline = self.get_baseline(task_id)
 
         if not baseline:
             return {"_no_baseline": True}
 
-        comparisons = {}
+        comparisons: dict[str, dict[str, Any]] = {}
+
+        if coverage == "strict":
+            for name, values in current_values.items():
+                if not all(isfinite(value) for value in values):
+                    raise ValueError(f"Current metric {name!r} must be finite")
+            self._validate_finite(baseline, {})
+            current_values = {
+                name: values for name, values in current_values.items()
+                # len(), not truthiness: np.array([0.0]) is a measurement, and
+                # a longer array has no truth value.
+                if len(values) > 0 or name not in baseline.metrics
+            }
 
         for metric_name, values in current_values.items():
             metric_baseline = baseline.get_metric(metric_name)
@@ -1110,5 +1244,13 @@ class BaselineManager:
                 **({"unavailable_fields": comparison.unavailable_fields}
                    if comparison.unavailable_fields else {}),
             }
+            changed = metric_baseline.change_exceeds_tolerance(current_est.mean)
+            if changed is not None:
+                comparisons[metric_name]["changed"] = changed
+
+        if coverage == "strict":
+            for row in comparisons.values():
+                row["coverage"] = "matched"
+            comparisons.update(self._coverage_findings(baseline, current_values, "is_regression"))
 
         return comparisons

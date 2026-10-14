@@ -594,14 +594,18 @@ A number that was not measured is **unavailable**, never zero:
   direction too. One function,
   `tracelens.statistics.availability.relative_to_baseline`, defines the
   rule, and every relative change against a stored baseline goes through
-  it. The number is unavailable, but a bound on it is not: a relative bound
+  it. (A change tolerance bounds `|delta|` directly instead, and reaches the
+  same verdict at zero; see
+  [Deterministic comparison policy](#deterministic-comparison-policy).)
+  The number is unavailable, but a bound on it is not: a relative bound
   `r × |0| = 0` allows no movement, so any move in the worse direction
   exceeds every relative threshold and every severity bin, the verdict a
   baseline of 1e-300 gives. Callers decide from the signed `delta`.
     - `BaselineManager.compare_to_baseline` reports `relative_change: null`
       with `unavailable_fields: ["relative_change"]`, and with a relative
-      threshold set any worsening is a regression; `regression` stays a
-      boolean. Rows against a nonzero baseline have no `unavailable_fields`
+      threshold set any worsening is a regression; `regression` in a
+      matched row stays a boolean (only a `coverage="strict"` row for a
+      missing metric carries `None`). Rows against a nonzero baseline have no `unavailable_fields`
       key. Each threshold is the largest allowed worsening:
       `regression_threshold_absolute` in metric units written as a negative
       number, `regression_threshold_relative` as a positive fraction of
@@ -665,6 +669,27 @@ are never compared across silently different populations.
 | `RegressionDetector` and the gate's suite criterion reported `delta_percent = +100` for a move off a zero baseline mean in either direction, so a decline read `+100.0%`, any move cleared `min_delta_percent`, and its severity was `severe`, blocking a significant move at every `--fail-on-regression` level | `delta_percent` is unavailable; the change is unbounded relative to 0, so its severity stays `severe` and a significant one blocks at every level, without the invented percentage | #188 (fixed; #190 widened #188's scope from `compare_to_baseline` to the gate) |
 | `TaskBaseline.can_promote` (behind `try_promote`) skips a metric whose stored baseline is 0, so a worsening from 0 neither earns nor blocks promotion, even with `require_all_metrics_improve=True` | a worsening from 0 blocks promotion like any other worsening | open (unchanged by #190, so existing promotion ratchets keep their behavior) |
 | `MetricEstimate.se` is `inf` when `n <= 1`, so `ComparisonResult.to_dict()` and the `current` estimate in `compare_to_baseline_with_ci` rows are not strict JSON whenever a side has one sample, whatever its mean | an unavailable standard error is `null`, never `inf` | open |
+
+## Deterministic comparison policy
+
+`BaselineManager.compare_to_baseline` is a point-value policy comparison, not
+a significance test. Opt-in `coverage="strict"` reports a changed metric set
+with `missing_from_current` / `missing_from_baseline`; missing values are not
+zero-filled and carry no regression verdict. An empty current sample list in
+`compare_to_baseline_with_ci` is unmeasured under strict coverage.
+
+Optional metric `change_tolerance_absolute` and `change_tolerance_relative`
+add a two-sided `changed` flag: absolute delta exceeds the absolute limit or
+the relative limit times baseline magnitude. At a zero baseline a relative
+tolerance therefore allows no movement, the same rule the availability
+section gives a relative regression threshold. This flag is separate from
+regression direction and statistical significance. In the CI method, it tests
+the current mean only; it makes no distributional or equivalence claim. The
+statistical CLI gate continues to use `RegressionDetector` and its policy above;
+these manager options do not change that gate's estimators or exit codes.
+
+See the [baseline tutorial](baseline-regression-tutorial.md#two-sided-change-tolerances)
+for boundary rules and a runnable downstream consumer.
 
 ## Related pages
 

@@ -10,6 +10,20 @@ top-level `tracelens.*` imports as the stable surface; submodule paths may move.
 
 ### Added
 
+- Optional two-sided `MetricBaseline.change_tolerance_absolute` and
+  `change_tolerance_relative` report `changed` independently of regression
+  direction and significance. Zero requires exact equality; updates retaining
+  thresholds and promotion retain the settings and their history. The CI method
+  checks its current mean. Existing baseline files and unconfigured comparison
+  rows retain their behavior. The frozen canary recipe blocks both upward and
+  downward count changes, and refuses a baseline in which any metric has no
+  tolerance. (#184)
+- Opt-in `coverage="strict"` on both `BaselineManager` comparison methods
+  reports metrics missing from current or baseline, including empty current
+  sample lists. Missing measurements carry no regression verdict and are never
+  zero-filled. Existing files and default comparison dictionaries retain their
+  behavior. A runnable frozen replay recipe exercises the Python consumer gate
+  and persists its trials and decision. (#185)
 - **Provenance records what an adapter or grader *is*, not only what it is
   called.** `ComponentIdentity` gains `source_hash`, the SHA-256 of the file
   that defines the class — the candidate-side counterpart of the per-task
